@@ -37,6 +37,7 @@
 - 设置面板改为可滚动布局，解决英文字段在小屏设备上的像素溢出。
 - 主计时器显示与设置面板样式常量拆分成独立模块，后续复用与调优更方便。
 - `presentation/widgets/` 目录按 display / settings / dialogs / common 分类，方便查找与扩展组件。
+- TimerDisplay 动态调整上下内边距，兼容带虚拟导航栏的屏幕，避免底部文字溢出。
 - 2025-10-07：`flutter analyze` 与 `flutter test` 均通过。
 
 ## 协作规则

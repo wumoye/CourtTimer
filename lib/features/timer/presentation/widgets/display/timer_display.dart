@@ -21,6 +21,7 @@ class TimerDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
     final settings = SettingsScope.of(context);
     final language = settings.language;
     final isPrestart = state.isPrestart && state.prestartCount != null;
@@ -42,7 +43,7 @@ class TimerDisplay extends StatelessWidget {
       onLongPress: onReset,
       child: Container(
         width: double.infinity,
-        padding: TimerDisplayTheme.padding,
+        padding: TimerDisplayTheme.containerPadding(media),
         decoration: TimerDisplayTheme.containerDecoration(context),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -65,10 +66,10 @@ class TimerDisplay extends StatelessWidget {
                         ),
                       ),
                     ),
-              ],
+                ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(caption, style: captionStyle),
           ],
         ),

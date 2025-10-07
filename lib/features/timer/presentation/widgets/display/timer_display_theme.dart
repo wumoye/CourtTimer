@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 /// Styling utilities for the main timer display so visual constants live in
 /// one place and can be reused or themed later.
 class TimerDisplayTheme {
-  static const EdgeInsetsGeometry padding =
-      EdgeInsets.symmetric(vertical: 48);
   static const BorderRadius borderRadius =
       BorderRadius.all(Radius.circular(24));
   static const BorderRadius overlayBorderRadius =
@@ -17,6 +15,22 @@ class TimerDisplayTheme {
     ),
   ];
   static const Color overlayScrimColor = Color(0xD9000000);
+
+  static EdgeInsets containerPadding(MediaQueryData media) {
+    final bottomInset = media.viewPadding.bottom;
+    final screenHeight = media.size.height;
+    final baseVertical = screenHeight < 720 ? 28.0 : 44.0;
+    final adjustedBottom =
+        (baseVertical - bottomInset * 0.6).clamp(20.0, baseVertical);
+    final adjustedTop =
+        (baseVertical - bottomInset * 0.2).clamp(24.0, baseVertical);
+    return EdgeInsets.only(
+      left: 24,
+      right: 24,
+      top: adjustedTop,
+      bottom: adjustedBottom,
+    );
+  }
 
   static BoxDecoration containerDecoration(BuildContext context) {
     return BoxDecoration(
