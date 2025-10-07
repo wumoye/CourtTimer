@@ -35,6 +35,8 @@
 - 更新 Widget 测试以适应新布局。
 - 自定义时长弹窗重构为带状态组件，修复 `TextEditingController` 提前释放导致的崩溃，并保持滑条与输入框同步。
 - 设置面板改为可滚动布局，解决英文字段在小屏设备上的像素溢出。
+- 主计时器显示与设置面板样式常量拆分成独立模块，后续复用与调优更方便。
+- `presentation/widgets/` 目录按 display / settings / dialogs / common 分类，方便查找与扩展组件。
 - 2025-10-07：`flutter analyze` 与 `flutter test` 均通过。
 
 ## 协作规则

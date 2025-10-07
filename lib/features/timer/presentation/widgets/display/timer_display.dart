@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/settings/app_language.dart';
-import '../../../../core/settings/settings_scope.dart';
-import '../../../../l10n/app_localizations.dart';
-import '../../model/timer_state.dart';
-import '../../utils/duration_formatter.dart';
+import '../../../../../core/settings/app_language.dart';
+import '../../../../../core/settings/settings_scope.dart';
+import '../../../../../l10n/app_localizations.dart';
+import '../../../model/timer_state.dart';
+import '../../../utils/duration_formatter.dart';
+import 'timer_display_theme.dart';
 
 class TimerDisplay extends StatelessWidget {
   const TimerDisplay({
@@ -22,7 +23,6 @@ class TimerDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = SettingsScope.of(context);
     final language = settings.language;
-    final color = Colors.blueGrey.shade900;
     final isPrestart = state.isPrestart && state.prestartCount != null;
     final displayText =
         isPrestart
@@ -33,38 +33,17 @@ class TimerDisplay extends StatelessWidget {
     final showCompletedOverlay = state.isCompleted;
 
     final textTheme = Theme.of(context).textTheme;
-    final headlineStyle =
-        textTheme.headlineLarge?.copyWith(
-          letterSpacing: 4,
-          color: Colors.white,
-        ) ??
-        const TextStyle(
-          fontSize: 96,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 4,
-          color: Colors.white,
-        );
-    final captionStyle =
-        textTheme.titleMedium?.copyWith(color: Colors.white70) ??
-        const TextStyle(color: Colors.white70);
+    final headlineStyle = TimerDisplayTheme.headline(textTheme);
+    final overlayStyle = TimerDisplayTheme.overlay(headlineStyle);
+    final captionStyle = TimerDisplayTheme.caption(textTheme);
 
     return GestureDetector(
       onTap: onToggle,
       onLongPress: onReset,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 48),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black54,
-              blurRadius: 16,
-              offset: Offset(0, 8),
-            ),
-          ],
-        ),
+        padding: TimerDisplayTheme.padding,
+        decoration: TimerDisplayTheme.containerDecoration(context),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -77,22 +56,16 @@ class TimerDisplay extends StatelessWidget {
                   if (showCompletedOverlay)
                     Positioned.fill(
                       child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.85),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                        decoration: TimerDisplayTheme.overlayDecoration(),
                         child: Center(
                           child: Text(
                             l10n.timerDisplayOverlayCompleted,
-                            style: headlineStyle.copyWith(
-                              fontSize: 48,
-                              letterSpacing: 8,
-                            ),
+                            style: overlayStyle,
                           ),
                         ),
                       ),
                     ),
-                ],
+              ],
               ),
             ),
             const SizedBox(height: 16),

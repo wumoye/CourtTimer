@@ -5,11 +5,11 @@ import '../../../../core/settings/speech_scope.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../controller/timer_controller.dart';
 import '../../model/timer_state.dart';
-import '../widgets/announcement_panel.dart';
-import '../widgets/custom_duration_dialog.dart';
-import '../widgets/duration_selector.dart';
-import '../widgets/timer_display.dart';
-import '../widgets/timer_settings_sheet.dart';
+import '../widgets/common/announcement_panel.dart';
+import '../widgets/dialogs/custom_duration_dialog.dart';
+import '../widgets/common/duration_selector.dart';
+import '../widgets/display/timer_display.dart';
+import '../widgets/settings/timer_settings_sheet.dart';
 
 class TimerPage extends StatefulWidget {
   const TimerPage({super.key});

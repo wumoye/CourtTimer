@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/settings/app_language.dart';
-import '../../../../l10n/app_localizations.dart';
-import '../../model/milestones.dart';
-import '../../utils/duration_formatter.dart';
+import '../../../../../core/settings/app_language.dart';
+import '../../../../../l10n/app_localizations.dart';
+import '../../../model/milestones.dart';
+import '../../../utils/duration_formatter.dart';
+import 'timer_component_layout.dart';
 
 class AnnouncementPanel extends StatelessWidget {
   const AnnouncementPanel({
@@ -27,8 +28,8 @@ class AnnouncementPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Wrap(
-      spacing: 12,
-      runSpacing: 12,
+      spacing: TimerComponentLayout.chipSpacing,
+      runSpacing: TimerComponentLayout.chipRunSpacing,
       alignment: WrapAlignment.center,
       children: [
         for (final seconds in milestoneSeconds)

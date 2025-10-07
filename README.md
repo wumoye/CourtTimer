@@ -11,6 +11,7 @@ CourtTimer is a cross-platform Flutter timer app designed for basketball practic
 - Basketball-flavoured voice prompts with per-language phrasing (system TTS today, audio packs / online TTS coming soon).
 - Configurable end-of-clock whistle: drop audio files under `assets/audio/` and pick them in settings.
 - Remembers your last language, voice mode, timer duration, milestones, and whistle across sessions.
+- Modularized settings sheet and timer display styling for quick UI tweaks.
 - Works on Android handsets and modern browsers (Edge/Chrome); desktop builds are included.
 
 ## Requirements
@@ -55,7 +56,9 @@ lib/
      ├─ controller/         # TimerController business logic
      ├─ model/              # TimerState, milestone definitions
      ├─ services/           # Speech (flutter_tts) & wake lock helpers
-     ├─ presentation/       # Pages, widgets, dialogs
+     ├─ presentation/
+     │    ├─ pages/         # Top-level screens
+     │    └─ widgets/       # Subdivided into display/, settings/, dialogs/, common/
      └─ utils/              # Duration formatting & speech helpers
 test/                       # Widget tests
 memo.md                     # Running project notes (kept up to date)

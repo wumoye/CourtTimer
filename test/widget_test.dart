@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:courttimer/app.dart';
-import 'package:courttimer/features/timer/presentation/widgets/duration_selector.dart';
-import 'package:courttimer/features/timer/presentation/widgets/timer_display.dart';
+import 'package:courttimer/features/timer/presentation/widgets/common/duration_selector.dart';
+import 'package:courttimer/features/timer/presentation/widgets/display/timer_display.dart';
 
 void main() {
   testWidgets('TimerPage renders primary widgets', (tester) async {

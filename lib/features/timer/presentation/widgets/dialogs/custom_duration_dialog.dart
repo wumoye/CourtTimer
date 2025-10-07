@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../l10n/app_localizations.dart';
+import '../../../../../l10n/app_localizations.dart';
+
+class CustomDurationLayout {
+  static const double sliderSpacing = 8;
+  static const double sectionSpacing = 12;
+  static const double fieldSpacing = 16;
+}
 
 Future<int?> showCustomDurationDialog({
   required BuildContext context,
@@ -85,77 +91,45 @@ class _CustomDurationDialogState extends State<_CustomDurationDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(l10n.customMinutesLabel),
-            Slider(
-              value: _minutesValue.toDouble(),
+            _DurationSliderTile(
+              label: l10n.customMinutesLabel,
+              value: _minutesValue,
               min: 0,
-              max: widget.maxMinutes.toDouble(),
+              max: widget.maxMinutes,
               divisions: widget.maxMinutes,
-              label: l10n.customMinutesSliderLabel(_minutesValue),
-              onChanged: (value) => _syncMinutes(value.round()),
+              descriptionBuilder: l10n.customMinutesSliderLabel,
+              onChanged: _syncMinutes,
             ),
-            const SizedBox(height: 8),
-            Text(l10n.customSecondsLabel),
-            Slider(
-              value: _secondsValue.toDouble(),
+            const SizedBox(height: CustomDurationLayout.sliderSpacing),
+            _DurationSliderTile(
+              label: l10n.customSecondsLabel,
+              value: _secondsValue,
               min: 0,
               max: 59,
               divisions: 59,
-              label: l10n.customSecondsSliderLabel(_secondsValue),
-              onChanged: (value) => _syncSeconds(value.round()),
+              descriptionBuilder: l10n.customSecondsSliderLabel,
+              onChanged: _syncSeconds,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: CustomDurationLayout.sectionSpacing),
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: _DurationNumberField(
                     controller: _minutesController,
-                    decoration: InputDecoration(
-                      labelText: l10n.customMinutesLabel,
-                      suffixText: l10n.customMinutesSuffix,
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return null;
-                      }
-                      final parsed = int.tryParse(value);
-                      if (parsed == null ||
-                          parsed < 0 ||
-                          parsed > widget.maxMinutes) {
-                        return l10n.customMinutesValidator(widget.maxMinutes);
-                      }
-                      return null;
-                    },
+                    label: l10n.customMinutesLabel,
+                    suffix: l10n.customMinutesSuffix,
+                    validator: (value) => _validateMinutes(value, l10n),
                     onChanged: (value) =>
                         _syncMinutes(int.tryParse(value) ?? 0),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: CustomDurationLayout.fieldSpacing),
                 Expanded(
-                  child: TextFormField(
+                  child: _DurationNumberField(
                     controller: _secondsController,
-                    decoration: InputDecoration(
-                      labelText: l10n.customSecondsLabel,
-                      suffixText: l10n.customSecondsSuffix,
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return null;
-                      }
-                      final parsed = int.tryParse(value);
-                      if (parsed == null || parsed < 0 || parsed > 59) {
-                        return l10n.customSecondsValidator;
-                      }
-                      return null;
-                    },
+                    label: l10n.customSecondsLabel,
+                    suffix: l10n.customSecondsSuffix,
+                    validator: (value) => _validateSeconds(value, l10n),
                     onChanged: (value) =>
                         _syncSeconds(int.tryParse(value) ?? 0),
                   ),
@@ -193,6 +167,28 @@ class _CustomDurationDialogState extends State<_CustomDurationDialog> {
     Navigator.of(context).pop(totalSeconds);
   }
 
+  String? _validateMinutes(String? value, AppLocalizations l10n) {
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    final parsed = int.tryParse(value);
+    if (parsed == null || parsed < 0 || parsed > widget.maxMinutes) {
+      return l10n.customMinutesValidator(widget.maxMinutes);
+    }
+    return null;
+  }
+
+  String? _validateSeconds(String? value, AppLocalizations l10n) {
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    final parsed = int.tryParse(value);
+    if (parsed == null || parsed < 0 || parsed > 59) {
+      return l10n.customSecondsValidator;
+    }
+    return null;
+  }
+
   void _syncMinutes(int value) {
     final constrained = value.clamp(0, widget.maxMinutes).toInt();
     setState(() {
@@ -219,5 +215,76 @@ class _CustomDurationDialogState extends State<_CustomDurationDialog> {
         );
       }
     });
+  }
+}
+
+class _DurationSliderTile extends StatelessWidget {
+  const _DurationSliderTile({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.divisions,
+    required this.descriptionBuilder,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final int min;
+  final int max;
+  final int divisions;
+  final String Function(int) descriptionBuilder;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label),
+        Slider(
+          value: value.toDouble(),
+          min: min.toDouble(),
+          max: max.toDouble(),
+          divisions: divisions > 0 ? divisions : null,
+          label: descriptionBuilder(value),
+          onChanged: (selected) => onChanged(selected.round()),
+        ),
+      ],
+    );
+  }
+}
+
+class _DurationNumberField extends StatelessWidget {
+  const _DurationNumberField({
+    required this.controller,
+    required this.label,
+    required this.suffix,
+    required this.validator,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String suffix;
+  final FormFieldValidator<String> validator;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        suffixText: suffix,
+      ),
+      keyboardType: TextInputType.number,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+      ],
+      validator: validator,
+      onChanged: onChanged,
+    );
   }
 }
