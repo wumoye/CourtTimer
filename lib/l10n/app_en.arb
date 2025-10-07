@@ -1,0 +1,63 @@
+{
+  "appTitle": "Court Timer",
+  "timerPageTitle": "Clock",
+  "announcementSectionTitle": "Announcements",
+  "resetButtonLabel": "Reset",
+  "customDurationAction": "Custom",
+  "finalCountdownLabel": "10-0 final countdown",
+  "settingsTitle": "Settings",
+  "settingsLanguageLabel": "Language",
+  "settingsSpeechModeLabel": "Speech mode",
+  "settingsEndSoundLabel": "End sound",
+  "speechModeSystem": "Device TTS (offline)",
+  "speechModeOffline": "Audio pack (offline, coming soon)",
+  "speechModeOnline": "Online TTS (coming soon)",
+  "speechModeUnavailableNote": "Other speech modes will be available in a future update.",
+  "settingsSpeechModeHelp": "Choose how announcements are spoken.",
+  "settingsEndSoundHelp": "Choose the whistle or alert to play when time expires.",
+  "endSoundNoneOption": "None",
+  "endSoundPreviewPlay": "Preview",
+  "endSoundPreviewStop": "Stop",
+  "endSoundPreviewError": "Unable to play sound.",
+  "languageChinese": "Chinese",
+  "languageEnglish": "English",
+  "languageJapanese": "Japanese",
+  "customDurationTitle": "Custom duration",
+  "customMinutesLabel": "Minutes",
+  "customSecondsLabel": "Seconds",
+  "customMinutesSliderLabel": "{minutes} min",
+  "@customMinutesSliderLabel": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "customSecondsSliderLabel": "{seconds} s",
+  "@customSecondsSliderLabel": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "customMinutesSuffix": "min",
+  "customSecondsSuffix": "s",
+  "customMinutesValidator": "Enter 0-{max}",
+  "@customMinutesValidator": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "customSecondsValidator": "Enter 0-59",
+  "customDurationZeroError": "Total duration must be greater than 0",
+  "dialogCancel": "Cancel",
+  "dialogConfirm": "Confirm",
+  "timerDisplayPrestart": "Get ready",
+  "timerDisplayRunning": "Tap to pause / long press to reset",
+  "timerDisplayCompleted": "Tap to start / long press to reset",
+  "timerDisplayIdle": "Tap to start / long press to reset",
+  "timerDisplayOverlayCompleted": "Finished"
+}

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/settings/settings_scope.dart';
+import '../../../../core/settings/speech_scope.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../controller/timer_controller.dart';
 import '../../model/timer_state.dart';
 import '../widgets/announcement_panel.dart';
 import '../widgets/custom_duration_dialog.dart';
 import '../widgets/duration_selector.dart';
 import '../widgets/timer_display.dart';
+import '../widgets/timer_settings_sheet.dart';
 
 class TimerPage extends StatefulWidget {
   const TimerPage({super.key});
@@ -15,23 +19,42 @@ class TimerPage extends StatefulWidget {
 }
 
 class _TimerPageState extends State<TimerPage> {
-  late final TimerController _controller;
+  late TimerController _controller;
+  bool _controllerReady = false;
 
   @override
-  void initState() {
-    super.initState();
-    _controller = TimerController();
-    _controller.init();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_controllerReady) {
+      final speechService = SpeechScope.of(context);
+      final settingsController = SettingsScope.of(context);
+      _controller = TimerController(
+        speechService: speechService,
+        storage: settingsController.storage,
+      );
+      _controller.init();
+      _controllerReady = true;
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (_controllerReady) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_controllerReady) {
+      return const SizedBox.shrink();
+    }
+
+    final settings = SettingsScope.of(context);
+    final language = settings.language;
+    final l10n = AppLocalizations.of(context)!;
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -43,13 +66,13 @@ class _TimerPageState extends State<TimerPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    '篮球倒计时',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                    textAlign: TextAlign.center,
+                  _Header(
+                    title: l10n.timerPageTitle,
+                    onOpenSettings: _openSettings,
                   ),
                   const SizedBox(height: 24),
                   DurationSelector(
+                    language: language,
                     options: state.durationOptions,
                     selected: state.selectedSeconds,
                     onSelect: _controller.selectDuration,
@@ -58,12 +81,13 @@ class _TimerPageState extends State<TimerPage> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    '语音提醒',
+                    l10n.announcementSectionTitle,
                     style: Theme.of(context).textTheme.titleMedium,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
                   AnnouncementPanel(
+                    language: language,
                     enabledMilestones: state.enabledMilestones,
                     enableFinalCountdown: state.enableFinalCountdown,
                     onMilestoneChanged:
@@ -86,7 +110,7 @@ class _TimerPageState extends State<TimerPage> {
                   FilledButton.icon(
                     onPressed: () => _controller.reset(),
                     icon: const Icon(Icons.refresh),
-                    label: const Text('重置计时'),
+                    label: Text(l10n.resetButtonLabel),
                   ),
                 ],
               ),
@@ -105,5 +129,39 @@ class _TimerPageState extends State<TimerPage> {
     if (result != null) {
       _controller.applyCustomDuration(result);
     }
+  }
+
+  void _openSettings() {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      builder: (context) => const TimerSettingsSheet(),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.title, required this.onOpenSettings});
+
+  final String title;
+  final VoidCallback onOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = Theme.of(context).textTheme.headlineMedium;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Text(title, style: textStyle, textAlign: TextAlign.center),
+        Positioned(
+          right: 0,
+          child: IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: onOpenSettings,
+            tooltip: AppLocalizations.of(context)!.settingsTitle,
+          ),
+        ),
+      ],
+    );
   }
 }

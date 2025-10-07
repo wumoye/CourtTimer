@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/settings/app_language.dart';
+import '../../../../core/settings/settings_scope.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../model/timer_state.dart';
 import '../../utils/duration_formatter.dart';
 
@@ -17,13 +20,17 @@ class TimerDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settings = SettingsScope.of(context);
+    final language = settings.language;
     final color = Colors.blueGrey.shade900;
     final isPrestart = state.isPrestart && state.prestartCount != null;
     final displayText =
         isPrestart
             ? state.prestartCount!.toString()
             : formatAsDigits(state.remainingSeconds);
-    final caption = _buildCaption();
+    final l10n = AppLocalizations.of(context)!;
+    final caption = _buildCaption(l10n, language);
+    final showCompletedOverlay = state.isCompleted;
 
     final textTheme = Theme.of(context).textTheme;
     final headlineStyle =
@@ -61,7 +68,33 @@ class TimerDisplay extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(displayText, style: headlineStyle),
+            SizedBox(
+              height: 120,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Text(displayText, style: headlineStyle),
+                  if (showCompletedOverlay)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Center(
+                          child: Text(
+                            l10n.timerDisplayOverlayCompleted,
+                            style: headlineStyle.copyWith(
+                              fontSize: 48,
+                              letterSpacing: 8,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             Text(caption, style: captionStyle),
           ],
@@ -70,16 +103,16 @@ class TimerDisplay extends StatelessWidget {
     );
   }
 
-  String _buildCaption() {
+  String _buildCaption(AppLocalizations l10n, AppLanguage language) {
     if (state.isPrestart && state.prestartCount != null) {
-      return '预备 ';
+      return l10n.timerDisplayPrestart;
     }
     if (state.isRunning) {
-      return '轻触暂停 / 长按重置';
+      return l10n.timerDisplayRunning;
     }
     if (state.isCompleted) {
-      return '已结束，轻触开始 / 长按重置';
+      return l10n.timerDisplayCompleted;
     }
-    return '轻触开始 / 长按重置';
+    return l10n.timerDisplayIdle;
   }
 }

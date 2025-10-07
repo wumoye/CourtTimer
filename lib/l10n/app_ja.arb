@@ -1,0 +1,63 @@
+{
+  "appTitle": "コートタイマー",
+  "timerPageTitle": "タイマー",
+  "announcementSectionTitle": "アナウンス",
+  "resetButtonLabel": "リセット",
+  "customDurationAction": "カスタム",
+  "finalCountdownLabel": "10〜0 カウントダウン",
+  "settingsTitle": "設定",
+  "settingsLanguageLabel": "言語",
+  "settingsSpeechModeLabel": "音声モード",
+  "settingsEndSoundLabel": "終了サウンド",
+  "speechModeSystem": "端末TTS（オフライン）",
+  "speechModeOffline": "音声パック（近日対応）",
+  "speechModeOnline": "オンラインTTS（近日対応）",
+  "speechModeUnavailableNote": "その他の音声モードは今後追加予定です。",
+  "settingsSpeechModeHelp": "アナウンス方法を選択してください。",
+  "settingsEndSoundHelp": "試合終了時に再生するホイッスルを選択。",
+  "endSoundNoneOption": "なし",
+  "endSoundPreviewPlay": "試聴",
+  "endSoundPreviewStop": "停止",
+  "endSoundPreviewError": "サウンドを再生できません。",
+  "languageChinese": "中国語",
+  "languageEnglish": "英語",
+  "languageJapanese": "日本語",
+  "customDurationTitle": "カスタム時間",
+  "customMinutesLabel": "分",
+  "customSecondsLabel": "秒",
+  "customMinutesSliderLabel": "{minutes} 分",
+  "@customMinutesSliderLabel": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "customSecondsSliderLabel": "{seconds} 秒",
+  "@customSecondsSliderLabel": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "customMinutesSuffix": "分",
+  "customSecondsSuffix": "秒",
+  "customMinutesValidator": "0〜{max} を入力",
+  "@customMinutesValidator": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "customSecondsValidator": "0〜59 を入力",
+  "customDurationZeroError": "合計時間は 0 より大きくしてください",
+  "dialogCancel": "キャンセル",
+  "dialogConfirm": "決定",
+  "timerDisplayPrestart": "準備",
+  "timerDisplayRunning": "タップで一時停止 / 長押しでリセット",
+  "timerDisplayCompleted": "タップで開始 / 長押しでリセット",
+  "timerDisplayIdle": "タップで開始 / 長押しでリセット",
+  "timerDisplayOverlayCompleted": "試合終了"
+}

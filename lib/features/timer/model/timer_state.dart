@@ -49,17 +49,35 @@ class TimerState {
     );
   }
 
-  static TimerState initial() {
+  static TimerState initial({
+    int? selectedSeconds,
+    int? customSeconds,
+    Set<int>? enabledMilestones,
+    bool? enableFinalCountdown,
+  }) {
+    final selected = selectedSeconds ?? defaultDurations.first;
+    final custom = customSeconds;
+    final options = _buildDurationOptions(selected, custom);
     return TimerState(
-      selectedSeconds: defaultDurations.first,
-      remainingSeconds: defaultDurations.first,
-      durationOptions: List<int>.from(defaultDurations),
-      enabledMilestones: milestoneLabels.keys.toSet(),
-      enableFinalCountdown: true,
+      selectedSeconds: selected,
+      remainingSeconds: selected,
+      durationOptions: options,
+      enabledMilestones: enabledMilestones ?? milestoneSeconds.toSet(),
+      enableFinalCountdown: enableFinalCountdown ?? true,
       isRunning: false,
       isPrestart: false,
       prestartCount: null,
-      customSeconds: null,
+      customSeconds: custom,
     );
+  }
+
+  static List<int> _buildDurationOptions(int selected, int? customSeconds) {
+    final options = defaultDurations.toSet()..add(selected);
+    if (customSeconds != null) {
+      options.add(customSeconds);
+    }
+    final list = options.toList()
+      ..sort((a, b) => b.compareTo(a));
+    return list;
   }
 }

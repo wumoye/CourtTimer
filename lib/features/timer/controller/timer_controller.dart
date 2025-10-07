@@ -2,20 +2,30 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../core/settings/settings_storage.dart';
 import '../model/milestones.dart';
 import '../model/timer_state.dart';
 import '../services/speech_service.dart';
 import '../services/wake_service.dart';
 
 class TimerController extends ChangeNotifier {
-  TimerController({SpeechService? speechService})
-    : _speech = speechService ?? SpeechService(),
-      _state = TimerState.initial();
+  TimerController({
+    required SpeechService speechService,
+    required SettingsStorage storage,
+  })  : _speech = speechService,
+        _storage = storage,
+        _state = TimerState.initial(
+          selectedSeconds: storage.loadTimerSelectedSeconds(),
+          customSeconds: storage.loadTimerCustomSeconds(),
+          enabledMilestones: storage.loadTimerEnabledMilestones(),
+          enableFinalCountdown: storage.loadTimerFinalCountdown(),
+        );
 
   TimerState _state;
   TimerState get state => _state;
 
   final SpeechService _speech;
+  final SettingsStorage _storage;
   Timer? _ticker;
   final Set<int> _announcedMilestones = <int>{};
   bool _disposed = false;
@@ -68,6 +78,10 @@ class TimerController extends ChangeNotifier {
     );
     _announcedMilestones.clear();
     _hasStartedOnce = false;
+    _storage.saveTimerSelectedSeconds(target);
+    if (seconds != null) {
+      _storage.saveTimerCustomSeconds(seconds);
+    }
   }
 
   void selectDuration(int seconds) {
@@ -87,12 +101,14 @@ class TimerController extends ChangeNotifier {
     );
     _announcedMilestones.clear();
     _hasStartedOnce = false;
+    _storage.saveTimerSelectedSeconds(seconds);
   }
 
   void applyCustomDuration(int seconds) {
     if (seconds <= 0) {
       return;
     }
+    _storage.saveTimerCustomSeconds(seconds);
     reset(seconds: seconds);
   }
 
@@ -104,10 +120,12 @@ class TimerController extends ChangeNotifier {
       updated.remove(seconds);
     }
     _setState(_state.copyWith(enabledMilestones: updated));
+    _storage.saveTimerEnabledMilestones(updated);
   }
 
   void toggleFinalCountdown(bool value) {
     _setState(_state.copyWith(enableFinalCountdown: value));
+    _storage.saveTimerFinalCountdown(value);
   }
 
   @override

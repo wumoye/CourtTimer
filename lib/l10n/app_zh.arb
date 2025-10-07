@@ -1,0 +1,63 @@
+{
+  "appTitle": "CourtTimer 计时器",
+  "timerPageTitle": "计时器",
+  "announcementSectionTitle": "语音提醒",
+  "resetButtonLabel": "下一把",
+  "customDurationAction": "自定义",
+  "finalCountdownLabel": "10~0 秒倒数",
+  "settingsTitle": "设置",
+  "settingsLanguageLabel": "界面语言",
+  "settingsSpeechModeLabel": "语音模式",
+  "settingsEndSoundLabel": "结束音效",
+  "speechModeSystem": "系统语音（离线）",
+  "speechModeOffline": "语音包（敬请期待）",
+  "speechModeOnline": "在线语音（敬请期待）",
+  "speechModeUnavailableNote": "其他语音模式将在未来版本提供。",
+  "settingsSpeechModeHelp": "选择语音播报的方案。",
+  "settingsEndSoundHelp": "选择计时结束时播放的哨声或提示音。",
+  "endSoundNoneOption": "无",
+  "endSoundPreviewPlay": "预览",
+  "endSoundPreviewStop": "停止",
+  "endSoundPreviewError": "无法播放音频。",
+  "languageChinese": "中文",
+  "languageEnglish": "英文",
+  "languageJapanese": "日文",
+  "customDurationTitle": "自定义倒计时",
+  "customMinutesLabel": "分钟",
+  "customSecondsLabel": "秒",
+  "customMinutesSliderLabel": "{minutes} 分",
+  "@customMinutesSliderLabel": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "customSecondsSliderLabel": "{seconds} 秒",
+  "@customSecondsSliderLabel": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "customMinutesSuffix": "分",
+  "customSecondsSuffix": "秒",
+  "customMinutesValidator": "请输入 0-{max}",
+  "@customMinutesValidator": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "customSecondsValidator": "请输入 0-59",
+  "customDurationZeroError": "倒计时时长必须大于 0",
+  "dialogCancel": "取消",
+  "dialogConfirm": "确定",
+  "timerDisplayPrestart": "预备",
+  "timerDisplayRunning": "轻触暂停 / 长按重置",
+  "timerDisplayCompleted": "轻触开始 / 长按重置",
+  "timerDisplayIdle": "轻触开始 / 长按重置",
+  "timerDisplayOverlayCompleted": "已结束"
+}

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/settings/app_language.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../model/milestones.dart';
+import '../../utils/duration_formatter.dart';
 
 class AnnouncementPanel extends StatelessWidget {
   const AnnouncementPanel({
     super.key,
+    required this.language,
     required this.enabledMilestones,
     required this.enableFinalCountdown,
     required this.onMilestoneChanged,
@@ -12,6 +16,7 @@ class AnnouncementPanel extends StatelessWidget {
     required this.isInteractionDisabled,
   });
 
+  final AppLanguage language;
   final Set<int> enabledMilestones;
   final bool enableFinalCountdown;
   final void Function(int seconds, bool enabled) onMilestoneChanged;
@@ -20,22 +25,23 @@ class AnnouncementPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Wrap(
       spacing: 12,
       runSpacing: 12,
       alignment: WrapAlignment.center,
       children: [
-        for (final entry in milestoneLabels.entries)
+        for (final seconds in milestoneSeconds)
           FilterChip(
-            label: Text(entry.value),
-            selected: enabledMilestones.contains(entry.key),
+            label: Text(milestoneLabelFor(language, seconds)),
+            selected: enabledMilestones.contains(seconds),
             onSelected:
                 isInteractionDisabled
                     ? null
-                    : (selected) => onMilestoneChanged(entry.key, selected),
+                    : (selected) => onMilestoneChanged(seconds, selected),
           ),
         FilterChip(
-          label: const Text('10~0 秒倒数'),
+          label: Text(l10n.finalCountdownLabel),
           selected: enableFinalCountdown,
           onSelected: isInteractionDisabled ? null : onFinalCountdownChanged,
         ),
