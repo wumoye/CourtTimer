@@ -1,0 +1,5 @@
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD_SAME_OR_DIFFERENT
+keyAlias=courttimer
+# Relative to app module; points to android/release.keystore
+storeFile=../release.keystore
