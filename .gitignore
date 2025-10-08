@@ -46,3 +46,5 @@ app.*.map.json
 
 # Secrets
 assets/tts_service_key.json
+android/release.keystore
+android/key.properties

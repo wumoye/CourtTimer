@@ -53,6 +53,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -66,6 +67,26 @@ flutter:
 
   assets:
     - assets/audio/
+
+
+flutter_launcher_icons:
+  # 基础图标（建议 1024x1024 PNG，透明背景）
+  image_path: assets/icon/icon.png
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  # 可选：Android 自适应图标（若提供以下前景/背景将覆盖 image_path）
+  # adaptive_icon_foreground: assets/icon/foreground.png
+  # adaptive_icon_background: "#121212" # 或图片路径
+  # Android 13 单色图标（可选）：
+  # adaptive_icon_monochrome: assets/icon/monochrome.png
+  # 桌面与 Web（可选，未来需要时可启用）
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false
 
 
   # To add assets to your application, add an assets section, like this:

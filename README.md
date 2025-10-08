@@ -1,5 +1,7 @@
 # CourtTimer
 
+[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
+
 CourtTimer is a cross-platform Flutter timer app designed for basketball practice sessions and friendly scrimmages. It combines configurable game clocks with natural-sounding prompts so players can focus on the court instead of the stopwatch.
 
 ## Features
