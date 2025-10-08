@@ -31,7 +31,7 @@ android {
     }
 
     // 读取签名配置（CI 中通过 key.properties 注入）
-    val keystoreProperties = java.util.Properties()
+    val keystoreProperties = Properties()
     val keystoreFile = rootProject.file("android/key.properties")
     if (keystoreFile.exists()) {
         keystoreFile.inputStream().use { keystoreProperties.load(it) }
@@ -53,3 +53,4 @@ android {
 flutter {
     source = "../.."
 }
+import java.util.Properties
