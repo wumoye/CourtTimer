@@ -15,7 +15,37 @@ env:
   BUILD_NAME: ${{ github.ref_name }}
 
 jobs:
+  guard:
+    name: Guard (main-only tags)
+    runs-on: ubuntu-latest
+    outputs:
+      allowed: ${{ steps.check.outputs.allowed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch main
+        run: |
+          git fetch origin +refs/heads/main:refs/remotes/origin/main --depth=0
+      - name: Check if tag commit is on main
+        id: check
+        shell: bash
+        run: |
+          # Resolve the tagged commit (handles annotated/lightweight tags)
+          TAG_REF="${GITHUB_REF_NAME}"
+          COMMIT_SHA=$(git rev-parse --verify "${TAG_REF}^{commit}")
+          if git merge-base --is-ancestor "$COMMIT_SHA" origin/main; then
+            echo "allowed=true" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG_REF is reachable from main. Proceeding.";
+          else
+            echo "allowed=false" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG_REF is NOT on main history. Skipping release jobs.";
+          fi
+
   derive-version:
+    if: needs.guard.outputs.allowed == 'true'
+    needs: guard
     name: Derive Version
     runs-on: ubuntu-latest
     outputs:
@@ -38,8 +68,9 @@ jobs:
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
 
   build-android:
+    if: needs.guard.outputs.allowed == 'true'
     name: Build Android
-    needs: derive-version
+    needs: [guard, derive-version]
     runs-on: ubuntu-latest
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -110,9 +141,9 @@ jobs:
             build/app/outputs/flutter-apk/app-x86_64-release.apk
 
   release:
+    if: needs.guard.outputs.allowed == 'true'
     name: Create GitHub Release
-    needs:
-      - build-android
+    needs: [guard, build-android]
     runs-on: ubuntu-latest
     steps:
       - name: Download build artifacts
