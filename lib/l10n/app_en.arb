@@ -9,6 +9,8 @@
   "settingsLanguageLabel": "Language",
   "settingsSpeechModeLabel": "Speech mode",
   "settingsEndSoundLabel": "End sound",
+  "settingsSpeechRateLabel": "Speech rate",
+  "settingsSpeechRateHelp": "Applies to device TTS only",
   "speechModeSystem": "Device TTS (offline)",
   "speechModeOffline": "Audio pack (offline, coming soon)",
   "speechModeOnline": "Online TTS (coming soon)",

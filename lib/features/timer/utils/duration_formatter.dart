@@ -82,6 +82,7 @@ String speechLabelFor(AppLanguage language, int seconds) {
 
   switch (language) {
     case AppLanguage.zh:
+      // 中文里在“分钟/秒”之间加入顿号，帮助TTS产生短暂停顿，提高清晰度
       final parts = <String>[];
       if (minutes > 0) {
         parts.add('${speechNumberFor(language, minutes, preferLiang: minutes == 2)}分钟');
@@ -89,7 +90,7 @@ String speechLabelFor(AppLanguage language, int seconds) {
       if (remain > 0) {
         parts.add('${speechNumberFor(language, remain, preferLiang: remain == 2)}秒');
       }
-      return parts.join('');
+      return parts.join('，');
     case AppLanguage.en:
       final parts = <String>[];
       if (minutes > 0) {

@@ -12,7 +12,7 @@ import '../../../../../l10n/app_localizations.dart';
 /// padding live in a single place.
 class TimerSettingsLayout {
   static const EdgeInsets sheetPadding =
-      EdgeInsets.fromLTRB(24, 24, 24, 32);
+      EdgeInsets.fromLTRB(24, 24, 24, 16); // 减小底部内边距，缩短视觉长度
 
   static const double sectionSpacing = 20;
   static const double noteTopSpacing = 28;
@@ -232,5 +232,75 @@ class EndSoundSelectorSection extends StatelessWidget {
       return fileName;
     }
     return fileName.substring(0, dotIndex);
+  }
+}
+
+class SpeechRateSelectorSection extends StatelessWidget {
+  const SpeechRateSelectorSection({
+    super.key,
+    required this.controller,
+    required this.l10n,
+  });
+
+  final SettingsController controller;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEnabled = controller.speechMode == SpeechMode.systemTts;
+    final value = controller.speechRate;
+    final label = _labelFor(controller.language, l10n);
+    final help = _helpFor(controller.language, l10n);
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label),
+            Text(
+              '${value.toStringAsFixed(2)}x',
+              style: textTheme.labelMedium,
+            ),
+          ],
+        ),
+        Slider(
+          value: value,
+          onChanged: isEnabled ? (v) => controller.updateSpeechRate(v) : null,
+          min: 0.3,
+          max: 1.0,
+          divisions: 14, // step 0.05 approx
+          label: '${(value).toStringAsFixed(2)}x',
+        ),
+        Text(
+          help,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+
+  String _labelFor(AppLanguage lang, AppLocalizations l10n) {
+    switch (lang) {
+      case AppLanguage.zh:
+        return '语速';
+      case AppLanguage.en:
+        return 'Speech rate';
+      case AppLanguage.ja:
+        return '話速';
+    }
+  }
+
+  String _helpFor(AppLanguage lang, AppLocalizations l10n) {
+    switch (lang) {
+      case AppLanguage.zh:
+        return '仅对系统TTS生效';
+      case AppLanguage.en:
+        return 'Applies to device TTS only';
+      case AppLanguage.ja:
+        return '端末TTSにのみ適用';
+    }
   }
 }

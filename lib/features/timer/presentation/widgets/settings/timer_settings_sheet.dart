@@ -70,6 +70,8 @@ class _TimerSettingsSheetState extends State<TimerSettingsSheet> {
                 const SizedBox(height: TimerSettingsLayout.sectionSpacing),
                 SpeechModeSelectorSection(controller: settings, l10n: l10n),
                 const SizedBox(height: TimerSettingsLayout.sectionSpacing),
+                SpeechRateSelectorSection(controller: settings, l10n: l10n),
+                const SizedBox(height: TimerSettingsLayout.sectionSpacing),
                 FutureBuilder<List<String>>(
                   future: _audioAssetsFuture,
                   builder: (context, snapshot) {
@@ -139,19 +141,24 @@ class _TimerSettingsSheetState extends State<TimerSettingsSheet> {
   }
 
   Future<List<String>> _loadAudioAssets(BuildContext context) async {
-    final manifestJson =
-        await DefaultAssetBundle.of(context).loadString('AssetManifest.json');
-    final Map<String, dynamic> manifest = json.decode(manifestJson);
-    final audioAssets = manifest.keys
-        .where(
-          (path) =>
-              path.startsWith('assets/audio/') &&
-              (path.endsWith('.mp3') ||
-                  path.endsWith('.wav') ||
-                  path.endsWith('.m4a')),
-        )
-        .toList()
-      ..sort();
-    return audioAssets;
+    try {
+      final manifestJson = await DefaultAssetBundle.of(context)
+          .loadString('AssetManifest.json');
+      final Map<String, dynamic> manifest = json.decode(manifestJson);
+      final audioAssets = manifest.keys
+          .where(
+            (path) =>
+                path.startsWith('assets/audio/') &&
+                (path.endsWith('.mp3') ||
+                    path.endsWith('.wav') ||
+                    path.endsWith('.m4a')),
+          )
+          .toList()
+        ..sort();
+      return audioAssets;
+    } catch (_) {
+      // 兜底：无法读取资源清单时，返回空列表，UI 将显示“无”，且禁用预览。
+      return const <String>[];
+    }
   }
 }

@@ -81,21 +81,12 @@ class SpeechService {
       return;
     }
     await _tts.setLanguage(_language.ttsLocaleTag);
-    await _tts.setSpeechRate(_speechRateFor(_language));
+    await _tts.setSpeechRate(_settings.speechRate);
     await _tts.setPitch(_pitchFor(_language));
     await _tts.setVolume(0.9);
   }
 
-  double _speechRateFor(AppLanguage language) {
-    switch (language) {
-      case AppLanguage.zh:
-        return 0.6;
-      case AppLanguage.en:
-        return 0.5;
-      case AppLanguage.ja:
-        return 0.55;
-    }
-  }
+  // 保留音高按语言微调；语速改由 Settings 控制
 
   double _pitchFor(AppLanguage language) {
     switch (language) {
