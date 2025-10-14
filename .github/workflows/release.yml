@@ -4,14 +4,13 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 env:
-  # 可选：Flutter channel 和版本
   FLUTTER_CHANNEL: stable
-  # 若 tag 为 v1.2.3 或 v1.2.3+4，将解析为下方两个变量
   BUILD_NAME: ${{ github.ref_name }}
 
 jobs:
@@ -37,10 +36,10 @@ jobs:
           COMMIT_SHA=$(git rev-parse --verify "${TAG_REF}^{commit}")
           if git merge-base --is-ancestor "$COMMIT_SHA" origin/main; then
             echo "allowed=true" >> "$GITHUB_OUTPUT"
-            echo "Tag $TAG_REF is reachable from main. Proceeding.";
+            echo "Tag $TAG_REF is reachable from main. Proceeding."
           else
             echo "allowed=false" >> "$GITHUB_OUTPUT"
-            echo "Tag $TAG_REF is NOT on main history. Skipping release jobs.";
+            echo "Tag $TAG_REF is NOT on main history. Skipping release jobs."
           fi
 
   derive-version:
@@ -101,19 +100,36 @@ jobs:
       - name: Flutter test
         run: flutter test --no-pub
 
-      - name: Configure Android keystore (optional)
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+      - name: Verify signing secrets (required)
         shell: bash
         run: |
+          set -euo pipefail
+          missing=()
+          [[ -z "${ANDROID_KEYSTORE_BASE64:-}" ]] && missing+=(ANDROID_KEYSTORE_BASE64)
+          [[ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ]] && missing+=(ANDROID_KEYSTORE_PASSWORD)
+          [[ -z "${ANDROID_KEY_ALIAS:-}" ]] && missing+=(ANDROID_KEY_ALIAS)
+          [[ -z "${ANDROID_KEY_ALIAS_PASSWORD:-}" ]] && missing+=(ANDROID_KEY_ALIAS_PASSWORD)
+          if (( ${#missing[@]} )); then
+            echo "Missing required signing secrets: ${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Configure Android keystore
+        shell: bash
+        run: |
+          set -euo pipefail
           mkdir -p android
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/release.keystore
           cat > android/key.properties <<EOF
           storePassword=$ANDROID_KEYSTORE_PASSWORD
           keyPassword=$ANDROID_KEY_ALIAS_PASSWORD
           keyAlias=$ANDROID_KEY_ALIAS
-          # 注意：Gradle 在 app 模块解析相对路径，这里用 ../ 指向 android/ 目录
           storeFile=../release.keystore
           EOF
+          echo "Keystore fingerprint (SHA1):"
+          keytool -list -v -keystore android/release.keystore \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" \
+            | grep -E "SHA1|SHA-1" || true
 
       - name: Build Android APK (universal)
         run: |
@@ -121,6 +137,12 @@ jobs:
             --release \
             --build-name "${{ needs.derive-version.outputs.build_name }}" \
             --build-number "${{ needs.derive-version.outputs.build_number }}"
+
+      - name: Print APK signature (SHA1)
+        run: |
+          echo "Universal APK fingerprint (SHA1):"
+          keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk \
+            | grep -E "SHA1|SHA-1" || true
 
       - name: Build Android APKs (split per ABI)
         run: |
