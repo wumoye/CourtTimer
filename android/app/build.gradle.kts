@@ -39,6 +39,12 @@ android {
         keystoreFile.inputStream().use { keystoreProperties.load(it) }
     }
 
+    // Fail fast: when building a release task without signing material, stop the build
+    val isReleaseTask = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+    if (!keystoreFile.exists() && isReleaseTask) {
+        throw GradleException("Missing android/key.properties for release signing. Configure via CI secrets or provide the file locally.")
+    }
+
     buildTypes {
         release {
             // 若 key.properties 存在，则使用正式签名；否则回退到 debug 签名方便本地运行

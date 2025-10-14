@@ -354,3 +354,191 @@ jobs:
             dist/**/**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+name: Release (Android)
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_CHANNEL: stable
+  BUILD_NAME: ${{ github.ref_name }}
+
+jobs:
+  guard:
+    name: Guard (main-only tags)
+    runs-on: ubuntu-latest
+    outputs:
+      allowed: ${{ steps.check.outputs.allowed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch main
+        run: |
+          git fetch origin +refs/heads/main:refs/remotes/origin/main --depth=0
+      - name: Check if tag commit is on main
+        id: check
+        shell: bash
+        run: |
+          TAG_REF="${GITHUB_REF_NAME}"
+          COMMIT_SHA=$(git rev-parse --verify "${TAG_REF}^{commit}")
+          if git merge-base --is-ancestor "$COMMIT_SHA" origin/main; then
+            echo "allowed=true" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG_REF is reachable from main. Proceeding."
+          else
+            echo "allowed=false" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG_REF is NOT on main history. Skipping release jobs."
+          fi
+
+  derive-version:
+    if: needs.guard.outputs.allowed == 'true'
+    needs: guard
+    name: Derive Version
+    runs-on: ubuntu-latest
+    outputs:
+      build_name: ${{ steps.vers.outputs.build_name }}
+      build_number: ${{ steps.vers.outputs.build_number }}
+    steps:
+      - name: Parse tag to build name/number
+        id: vers
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          if [[ "$TAG" == *+* ]]; then
+            BUILD_NAME="${TAG%%+*}"
+            BUILD_NUMBER="${TAG##*+}"
+          else
+            BUILD_NAME="$TAG"
+            BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          fi
+          echo "build_name=$BUILD_NAME" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
+  build-android:
+    if: needs.guard.outputs.allowed == 'true'
+    name: Build Android
+    needs: [guard, derive-version]
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_ALIAS_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Generate launcher icons (if icon exists)
+        shell: bash
+        run: |
+          if [ -f assets/icon/icon.png ]; then
+            dart run flutter_launcher_icons
+          else
+            echo "assets/icon/icon.png not found, skip icon generation."
+          fi
+
+      - name: Flutter test
+        run: flutter test --no-pub
+
+      - name: Verify signing secrets (required)
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          [[ -z "${ANDROID_KEYSTORE_BASE64:-}" ]] && missing+=(ANDROID_KEYSTORE_BASE64)
+          [[ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ]] && missing+=(ANDROID_KEYSTORE_PASSWORD)
+          [[ -z "${ANDROID_KEY_ALIAS:-}" ]] && missing+=(ANDROID_KEY_ALIAS)
+          [[ -z "${ANDROID_KEY_ALIAS_PASSWORD:-}" ]] && missing+=(ANDROID_KEY_ALIAS_PASSWORD)
+          if (( ${#missing[@]} )); then
+            echo "Missing required signing secrets: ${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Configure Android keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p android
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/release.keystore
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_ALIAS_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=../release.keystore
+          EOF
+          echo "Keystore fingerprint (SHA1):"
+          keytool -list -v -keystore android/release.keystore \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" \
+            | grep -E "SHA1|SHA-1" || true
+
+      - name: Build Android APK (universal)
+        run: |
+          flutter build apk \
+            --release \
+            --build-name "${{ needs.derive-version.outputs.build_name }}" \
+            --build-number "${{ needs.derive-version.outputs.build_number }}"
+
+      - name: Print APK signature (SHA1)
+        run: |
+          echo "Universal APK fingerprint (SHA1):"
+          keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk \
+            | grep -E "SHA1|SHA-1" || true
+
+      - name: Build Android APKs (split per ABI)
+        run: |
+          flutter build apk \
+            --release \
+            --split-per-abi \
+            --build-name "${{ needs.derive-version.outputs.build_name }}" \
+            --build-number "${{ needs.derive-version.outputs.build_number }}"
+
+      - name: Upload artifacts (Android)
+        uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            build/app/outputs/flutter-apk/app-x86_64-release.apk
+
+  release:
+    if: needs.guard.outputs.allowed == 'true'
+    name: Create GitHub Release
+    needs: [guard, build-android]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: List artifacts
+        run: |
+          ls -R dist
+
+      - name: Create Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/**/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
