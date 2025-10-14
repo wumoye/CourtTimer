@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
       - name: Fetch main
         run: |
-          git fetch origin +refs/heads/main:refs/remotes/origin/main --depth=0
+          git fetch origin +refs/heads/main:refs/remotes/origin/main
       - name: Check if tag commit is on main
         id: check
         shell: bash
