@@ -156,6 +156,7 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'End sound'**
   String get settingsEndSoundLabel;
+  
 
   /// No description provided for @speechModeSystem.
   ///

@@ -21,6 +21,7 @@ class TimerPage extends StatefulWidget {
 class _TimerPageState extends State<TimerPage> {
   late TimerController _controller;
   bool _controllerReady = false;
+  bool _announcementsExpanded = false;
 
   @override
   void didChangeDependencies() {
@@ -62,7 +63,7 @@ class _TimerPageState extends State<TimerPage> {
         return Scaffold(
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -71,30 +72,60 @@ class _TimerPageState extends State<TimerPage> {
                     onOpenSettings: _openSettings,
                   ),
                   const SizedBox(height: 24),
-                  DurationSelector(
-                    language: language,
-                    options: state.durationOptions,
-                    selected: state.selectedSeconds,
-                    onSelect: _controller.selectDuration,
-                    onCustom: () => _handleCustomDuration(state),
-                    isInteractionDisabled: state.isRunning || state.isPrestart,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    l10n.announcementSectionTitle,
-                    style: Theme.of(context).textTheme.titleMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  AnnouncementPanel(
-                    language: language,
-                    enabledMilestones: state.enabledMilestones,
-                    enableFinalCountdown: state.enableFinalCountdown,
-                    onMilestoneChanged:
-                        (seconds, enabled) =>
-                            _controller.toggleMilestone(seconds, enabled),
-                    onFinalCountdownChanged: _controller.toggleFinalCountdown,
-                    isInteractionDisabled: state.isRunning || state.isPrestart,
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          DurationSelector(
+                            language: language,
+                            options: state.durationOptions,
+                            selected: state.selectedSeconds,
+                            onSelect: _controller.selectDuration,
+                            onCustom: () => _handleCustomDuration(state),
+                            isInteractionDisabled:
+                                state.isRunning || state.isPrestart,
+                          ),
+                          const SizedBox(height: 24),
+                          ExpansionTile(
+                            initiallyExpanded: _announcementsExpanded,
+                            onExpansionChanged: (expanded) => setState(
+                              () => _announcementsExpanded = expanded,
+                            ),
+                            title: Text(
+                              l10n.announcementSectionTitle,
+                              style: Theme.of(context).textTheme.titleMedium,
+                              textAlign: TextAlign.center,
+                            ),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 8,
+                                ),
+                                child: AnnouncementPanel(
+                                  language: language,
+                                  enabledMilestones: state.enabledMilestones,
+                                  enableFinalCountdown:
+                                      state.enableFinalCountdown,
+                                  onMilestoneChanged: (seconds, enabled) =>
+                                      _controller.toggleMilestone(
+                                          seconds, enabled),
+                                  onFinalCountdownChanged:
+                                      _controller.toggleFinalCountdown,
+                                  isInteractionDisabled:
+                                      state.isRunning || state.isPrestart,
+                                  onAddMilestone: () =>
+                                      _handleAddMilestone(state),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 32),
                   Expanded(
@@ -106,13 +137,21 @@ class _TimerPageState extends State<TimerPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: () => _controller.reset(),
-                    icon: const Icon(Icons.refresh),
-                    label: Text(l10n.resetButtonLabel),
-                  ),
                 ],
+              ),
+            ),
+          ),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _controller.startNextRound(),
+                  icon: const Icon(Icons.refresh),
+                  label: Text(l10n.resetButtonLabel),
+                ),
               ),
             ),
           ),
@@ -131,11 +170,33 @@ class _TimerPageState extends State<TimerPage> {
     }
   }
 
+  Future<void> _handleAddMilestone(TimerState state) async {
+    // 复用“自定义时长”对话框来采集报时节点（分钟/秒），默认以当前选中时长为初值。
+    final result = await showCustomDurationDialog(
+      context: context,
+      initialSeconds: state.selectedSeconds,
+    );
+    if (result != null && result > 10) {
+      // 10 秒及以下由“最后 10 秒倒计时”负责，这里仅添加 >10s 的节点
+      _controller.toggleMilestone(result, true);
+    }
+  }
+
   void _openSettings() {
     showModalBottomSheet<void>(
       context: context,
       useSafeArea: true,
-      builder: (context) => const TimerSettingsSheet(),
+      isScrollControlled: true,
+      builder: (context) {
+        final screenHeight = MediaQuery.of(context).size.height;
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: screenHeight * 0.5, // 最小高度保障
+            maxHeight: screenHeight * 0.9, // 上限，避免铺满
+          ),
+          child: const TimerSettingsSheet(),
+        );
+      },
     );
   }
 }

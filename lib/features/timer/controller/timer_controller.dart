@@ -30,9 +30,13 @@ class TimerController extends ChangeNotifier {
   final Set<int> _announcedMilestones = <int>{};
   bool _disposed = false;
   bool _hasStartedOnce = false;
+  // 将最后10秒的数字播报串行化，避免相邻数字互相打断造成不流畅
+  Future<void> _finalSpeakQueue = Future.value();
 
   Future<void> init() async {
     await _speech.init();
+    // 清理历史预设：仅保留 6 分钟作为预设；如果历史选中为 1 分钟/30 秒/15 秒等，重置为 6 分钟。
+    _sanitizeSelection();
   }
 
   Future<void> toggleStartPause() async {
@@ -60,11 +64,10 @@ class TimerController extends ChangeNotifier {
     _ticker?.cancel();
     unawaited(ScreenWakeService.disable());
     unawaited(_speech.stop());
+    // 清空最后十秒的串行播报队列，避免残留数字在重置后串播
+    _finalSpeakQueue = Future.value();
     final target = seconds ?? _state.selectedSeconds;
-    final options = _rebuildDurationOptions(
-      target,
-      customSeconds: seconds ?? _state.customSeconds,
-    );
+    final options = _rebuildDurationOptions(target);
     _setState(
       _state.copyWith(
         selectedSeconds: target,
@@ -84,14 +87,17 @@ class TimerController extends ChangeNotifier {
     }
   }
 
+  /// 重置到选中时长，并直接开始下一把（包含预备3-2-1）
+  Future<void> startNextRound() async {
+    reset();
+    await toggleStartPause();
+  }
+
   void selectDuration(int seconds) {
     if (_state.isRunning || _state.isPrestart) {
       return;
     }
-    final options = _rebuildDurationOptions(
-      seconds,
-      customSeconds: _state.customSeconds,
-    );
+    final options = _rebuildDurationOptions(seconds);
     _setState(
       _state.copyWith(
         selectedSeconds: seconds,
@@ -202,7 +208,7 @@ class TimerController extends ChangeNotifier {
       }
 
       if (_state.enableFinalCountdown && next > 0 && next <= 10) {
-        unawaited(_speech.speakNumber(next));
+        _finalSpeakQueue = _finalSpeakQueue.then((_) => _speech.speakNumber(next));
       }
 
       if (next <= 0) {
@@ -242,14 +248,35 @@ class TimerController extends ChangeNotifier {
     return true;
   }
 
-  List<int> _rebuildDurationOptions(int selected, {int? customSeconds}) {
+  List<int> _rebuildDurationOptions(int selected) {
+    // 仅保留预设（6分钟）以及当前选中的时长。
     final options = defaultDurations.toSet();
     options.add(selected);
-    if (customSeconds != null) {
-      options.add(customSeconds);
-    }
     final sorted = options.toList()..sort((a, b) => b.compareTo(a));
     return sorted;
+  }
+
+  void _sanitizeSelection() {
+    final allowed = defaultDurations.toSet();
+    final current = _state.selectedSeconds;
+    if (!allowed.contains(current)) {
+      final target = defaultDurations.first;
+      final options = _rebuildDurationOptions(target);
+      _setState(
+        _state.copyWith(
+          selectedSeconds: target,
+          remainingSeconds: target,
+          durationOptions: options,
+        ),
+      );
+      _storage.saveTimerSelectedSeconds(target);
+      return;
+    }
+    // 即便已在允许集合内，仍按新规则重建选项，确保不会遗留旧的 1m/30s/15s 选项
+    final options = _rebuildDurationOptions(current);
+    if (!listEquals(options, _state.durationOptions)) {
+      _setState(_state.copyWith(durationOptions: options));
+    }
   }
 
   void _setState(TimerState newState) {

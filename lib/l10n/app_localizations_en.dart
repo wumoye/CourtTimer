@@ -38,6 +38,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsEndSoundLabel => 'End sound';
 
+  
+
   @override
   String get speechModeSystem => 'Device TTS (offline)';
 

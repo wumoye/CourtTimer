@@ -57,7 +57,7 @@ class TimerState {
   }) {
     final selected = selectedSeconds ?? defaultDurations.first;
     final custom = customSeconds;
-    final options = _buildDurationOptions(selected, custom);
+    final options = _buildDurationOptions(selected);
     return TimerState(
       selectedSeconds: selected,
       remainingSeconds: selected,
@@ -71,11 +71,9 @@ class TimerState {
     );
   }
 
-  static List<int> _buildDurationOptions(int selected, int? customSeconds) {
+  static List<int> _buildDurationOptions(int selected) {
+    // 仅保留预设（6分钟）以及当前选中的时长。
     final options = defaultDurations.toSet()..add(selected);
-    if (customSeconds != null) {
-      options.add(customSeconds);
-    }
     final list = options.toList()
       ..sort((a, b) => b.compareTo(a));
     return list;

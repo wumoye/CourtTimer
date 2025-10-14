@@ -11,6 +11,7 @@ class SettingsStorage {
   static const _keyLanguage = 'settings.language';
   static const _keySpeechMode = 'settings.speechMode';
   static const _keyEndSound = 'settings.endSound';
+  static const _keySpeechRate = 'settings.speechRate';
 
   static const _keyTimerSelectedSeconds = 'timer.selectedSeconds';
   static const _keyTimerCustomSeconds = 'timer.customSeconds';
@@ -55,6 +56,12 @@ class SettingsStorage {
       return;
     }
     _prefs.setString(_keyEndSound, path);
+  }
+
+  double? loadSpeechRate() => _prefs.getDouble(_keySpeechRate);
+
+  void saveSpeechRate(double value) {
+    _prefs.setDouble(_keySpeechRate, value);
   }
 
   int? loadTimerSelectedSeconds() => _prefs.getInt(_keyTimerSelectedSeconds);
