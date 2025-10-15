@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
       - name: Fetch main
         run: |
-          git fetch origin +refs/heads/main:refs/remotes/origin/main --depth=0
+          git fetch origin +refs/heads/main:refs/remotes/origin/main
       - name: Check if tag commit is on main
         id: check
         shell: bash
@@ -120,12 +120,12 @@ jobs:
           set -euo pipefail
           mkdir -p android
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/release.keystore
-          {
-            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
-            echo "keyPassword=$ANDROID_KEY_ALIAS_PASSWORD"
-            echo "keyAlias=$ANDROID_KEY_ALIAS"
-            echo "storeFile=../release.keystore"
-          } > android/key.properties
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_ALIAS_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=../release.keystore
+          EOF
           echo "Keystore fingerprint (SHA1):"
           keytool -list -v -keystore android/release.keystore \
             -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" \
