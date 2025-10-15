@@ -1,0 +1,100 @@
+name: CI (Flutter)
+
+on:
+  push:
+    branches:
+      - dev
+      - feature/**
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Flutter analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Flutter test
+        run: flutter test --no-pub
+
+  android-build:
+    name: Android Build (release if signed, else debug)
+    runs-on: ubuntu-latest
+    needs: analyze-and-test
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_ALIAS_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Try configure signing (optional on CI for dev/PR)
+        id: signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          has_all=true
+          [[ -z "${ANDROID_KEYSTORE_BASE64:-}" ]] && has_all=false
+          [[ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ]] && has_all=false
+          [[ -z "${ANDROID_KEY_ALIAS:-}" ]] && has_all=false
+          [[ -z "${ANDROID_KEY_ALIAS_PASSWORD:-}" ]] && has_all=false
+          if [ "$has_all" = true ]; then
+            mkdir -p android
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/release.keystore
+            {
+              echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
+              echo "keyPassword=$ANDROID_KEY_ALIAS_PASSWORD"
+              echo "keyAlias=$ANDROID_KEY_ALIAS"
+              echo "storeFile=../release.keystore"
+            } > android/key.properties
+            echo "Keystore fingerprint (SHA1):"
+            keytool -list -v -keystore android/release.keystore \
+              -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" \
+              | grep -E "SHA1|SHA-1" || true
+            echo "has_signing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Signing secrets not fully configured; proceeding with debug build."
+            echo "has_signing=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build Android (mode decided by signing)
+        shell: bash
+        run: |
+          if [ "${{ steps.signing.outputs.has_signing }}" = "true" ]; then
+            flutter build apk --release
+          else
+            flutter build apk --debug
+          fi
+
+      - name: Upload APK (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-ci-apk
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+
