@@ -37,7 +37,7 @@ class LanguageSelectorSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<AppLanguage>(
-      value: controller.language,
+      initialValue: controller.language,
       decoration: InputDecoration(labelText: l10n.settingsLanguageLabel),
       items: AppLanguage.values
           .map(
@@ -80,7 +80,7 @@ class SpeechModeSelectorSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<SpeechMode>(
-      value: controller.speechMode,
+      initialValue: controller.speechMode,
       decoration: InputDecoration(
         labelText: l10n.settingsSpeechModeLabel,
         helperText: l10n.settingsSpeechModeHelp,
