@@ -45,6 +45,15 @@ flutter analyze
 flutter test
 ```
 
+## Android 发布
+- 测试分发可使用 APK：
+  - `flutter build apk --release`
+- Google Play 上架请使用 AAB：
+  - `flutter build appbundle --release`
+- AAB 是上传到 Play Console 的格式，不建议作为 GitHub Release 附件给终端用户下载。
+- 本地生成的 AAB 路径：
+  - `build/app/outputs/bundle/release/app-release.aab`
+
 ## 项目结构
 ```
 lib/

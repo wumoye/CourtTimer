@@ -54,6 +54,14 @@ flutter test
   - 初回は「提供元不明のアプリ」を許可、またはブラウザ/ファイルアプリにインストール権限を付与。
   - アップデートには同一署名が必要。未設定の場合は CI がデバッグ署名でビルド。将来的には release 署名の固定化を推奨（下記参照）。
 
+## Google Play 公開（AAB）
+- Google Play に公開する場合は `.aab` を使います。
+- `.aab` はユーザー配布向けのファイルではなく、Play Console にアップロードするための形式です。
+- ローカルでの生成コマンド：
+  - `flutter build appbundle --release`
+- 出力先：
+  - `build/app/outputs/bundle/release/app-release.aab`
+
 ## リリース署名の固定（Android）
 配布用 APK/AAB を、長期的に同一の keystore（秘密鍵）と alias で署名し続ける運用です：
 - メリット：

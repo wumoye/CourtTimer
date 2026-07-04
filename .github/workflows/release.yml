@@ -138,11 +138,30 @@ jobs:
             --build-name "${{ needs.derive-version.outputs.build_name }}" \
             --build-number "${{ needs.derive-version.outputs.build_number }}"
 
-      - name: Print APK signature (SHA1)
+      - name: Build Android App Bundle (AAB)
         run: |
-          echo "Universal APK fingerprint (SHA1):"
-          keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk \
-            | grep -E "SHA1|SHA-1" || true
+          flutter build appbundle \
+            --release \
+            --build-name "${{ needs.derive-version.outputs.build_name }}" \
+            --build-number "${{ needs.derive-version.outputs.build_number }}"
+
+      - name: Print APK signature (SHA1)
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          echo "Universal APK fingerprint (SHA1) via apksigner:"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          APKSIGNER=""
+          if [ -n "$SDK_ROOT" ] && [ -d "$SDK_ROOT/build-tools" ]; then
+            APKSIGNER=$(ls -d "$SDK_ROOT"/build-tools/* 2>/dev/null | sort -V | tail -n1)/apksigner || true
+          fi
+          if [ -x "$APKSIGNER" ]; then
+            "$APKSIGNER" verify -print-certs "$APK" | grep -E "SHA-1|SHA1" || true
+          else
+            echo "apksigner not found; falling back to keytool (may be empty for v2/v3-signed APKs)"
+            keytool -printcert -jarfile "$APK" | grep -E "SHA-1|SHA1" || true
+          fi
 
       - name: Build Android APKs (split per ABI)
         run: |

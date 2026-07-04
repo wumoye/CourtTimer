@@ -4,7 +4,7 @@
 
 一、确定包名（一次）
 - Android：`android/app/build.gradle.kts` 中 `applicationId`
-- 本仓库已设置为：`io.github.wumoye.courttimer`
+- 本仓库 Android 已设置为：`com.wumoye.courttimer`
 
 二、生成正式 keystore（一次）
 - PowerShell（Windows）：
@@ -34,12 +34,16 @@ storeFile=../release.keystore
   - `ANDROID_KEY_ALIAS_PASSWORD`
 
 五、构建与分发
-- 本地验证：`flutter build apk --release`
+- 本地验证 APK：`flutter build apk --release`
+- 本地构建 AAB：`flutter build appbundle --release`
 - CI 触发发布：
   - `git tag v1.0.0 && git push origin v1.0.0`
   - 产物位于 GitHub Release 的 Assets：
     - `app-release.apk`（通用包）
     - `app-*-release.apk`（按 ABI 拆分）
+- Google Play 上传：
+  - 使用本地构建出的 `build/app/outputs/bundle/release/app-release.aab`
+  - `.aab` 不作为 GitHub Release 下载附件分发给终端用户
 
 注意事项
 - 一旦启动对外分发，请妥善保管 keystore；丢失将无法覆盖升级（需要更换包名或让用户卸载重装）。
