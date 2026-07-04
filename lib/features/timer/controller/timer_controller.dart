@@ -36,6 +36,8 @@ class TimerController extends ChangeNotifier {
   final Set<int> _announcedMilestones = <int>{};
   bool _disposed = false;
   bool _hasStartedOnce = false;
+  bool _startPending = false;
+  Future<void> _pendingSpeechStop = Future<void>.value();
 
   Future<void> init() async {
     await _speech.init();
@@ -58,7 +60,7 @@ class TimerController extends ChangeNotifier {
   void pause() {
     _ticker?.cancel();
     unawaited(_disableWake());
-    unawaited(_speech.stop());
+    _pendingSpeechStop = _speech.stop();
     _setState(
       _state.copyWith(isRunning: false, isPrestart: false, prestartCount: null),
     );
@@ -67,7 +69,7 @@ class TimerController extends ChangeNotifier {
   void reset({int? seconds}) {
     _ticker?.cancel();
     unawaited(_disableWake());
-    unawaited(_speech.stop());
+    _pendingSpeechStop = _speech.stop();
     final target = seconds ?? _state.selectedSeconds;
     final options = _rebuildDurationOptions(target);
     _setState(
@@ -146,6 +148,19 @@ class TimerController extends ChangeNotifier {
   }
 
   Future<void> _prepareAndStart() async {
+    if (_startPending) {
+      return;
+    }
+    _startPending = true;
+    try {
+      await _pendingSpeechStop;
+    } finally {
+      _startPending = false;
+    }
+    if (_state.isRunning || _state.isPrestart) {
+      return;
+    }
+
     if (_state.remainingSeconds <= 0) {
       _setState(_state.copyWith(remainingSeconds: _state.selectedSeconds));
       _hasStartedOnce = false;

@@ -29,6 +29,7 @@ class SpeechService implements TimerSpeechService {
   final FlutterTts _tts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _initialized = false;
+  int _speechGeneration = 0;
 
   AppLanguage get _language => _settings.language;
   SpeechMode get _mode => _settings.speechMode;
@@ -74,6 +75,7 @@ class SpeechService implements TimerSpeechService {
   }
 
   Future<void> stop() async {
+    _speechGeneration++;
     if (_mode == SpeechMode.systemTts) {
       await _tts.stop();
     }
@@ -81,6 +83,7 @@ class SpeechService implements TimerSpeechService {
   }
 
   void dispose() {
+    _speechGeneration++;
     _settings.removeListener(_handleSettingsChanged);
     _tts.stop();
     _audioPlayer.dispose();
@@ -153,11 +156,15 @@ class SpeechService implements TimerSpeechService {
   }
 
   Future<void> _speak(String text) async {
+    final generation = ++_speechGeneration;
     await init();
-    if (_mode != SpeechMode.systemTts) {
+    if (_mode != SpeechMode.systemTts || generation != _speechGeneration) {
       return;
     }
     await _tts.stop();
+    if (generation != _speechGeneration) {
+      return;
+    }
     await _tts.speak(text);
   }
 
