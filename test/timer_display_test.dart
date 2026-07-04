@@ -22,6 +22,7 @@ void main() {
       SettingsScope(
         controller: settings,
         child: MaterialApp(
+          locale: const Locale('zh'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
