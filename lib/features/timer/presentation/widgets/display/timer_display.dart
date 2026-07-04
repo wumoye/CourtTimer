@@ -32,6 +32,7 @@ class TimerDisplay extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final caption = _buildCaption(l10n, language);
     final showCompletedOverlay = state.isCompleted;
+    final showPausedOverlay = state.isPaused;
 
     final textTheme = Theme.of(context).textTheme;
     final headlineStyle = TimerDisplayTheme.headline(textTheme);
@@ -66,6 +67,31 @@ class TimerDisplay extends StatelessWidget {
                         ),
                       ),
                     ),
+                  if (showPausedOverlay)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: TimerDisplayTheme.overlayDecoration(),
+                        child: Center(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.pause_circle_outline_rounded,
+                                color: Colors.white,
+                                size: 44,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                l10n.timerDisplayOverlayPaused,
+                                style: TimerDisplayTheme.pauseOverlay(
+                                  headlineStyle,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -86,6 +112,9 @@ class TimerDisplay extends StatelessWidget {
     }
     if (state.isCompleted) {
       return l10n.timerDisplayCompleted;
+    }
+    if (state.isPaused) {
+      return l10n.timerDisplayPaused;
     }
     return l10n.timerDisplayIdle;
   }

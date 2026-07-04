@@ -57,7 +57,9 @@
   "dialogConfirm": "确定",
   "timerDisplayPrestart": "预备",
   "timerDisplayRunning": "轻触暂停 / 长按重置",
+  "timerDisplayPaused": "轻触继续 / 长按重置",
   "timerDisplayCompleted": "轻触开始 / 长按重置",
   "timerDisplayIdle": "轻触开始 / 长按重置",
-  "timerDisplayOverlayCompleted": "已结束"
+  "timerDisplayOverlayCompleted": "已结束",
+  "timerDisplayOverlayPaused": "已暂停"
 }

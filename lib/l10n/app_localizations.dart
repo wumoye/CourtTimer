@@ -156,7 +156,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'End sound'**
   String get settingsEndSoundLabel;
-  
 
   /// No description provided for @speechModeSystem.
   ///
@@ -320,6 +319,12 @@ abstract class AppLocalizations {
   /// **'Tap to pause / long press to reset'**
   String get timerDisplayRunning;
 
+  /// No description provided for @timerDisplayPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to resume / long press to reset'**
+  String get timerDisplayPaused;
+
   /// No description provided for @timerDisplayCompleted.
   ///
   /// In en, this message translates to:
@@ -337,6 +342,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Finished'**
   String get timerDisplayOverlayCompleted;
+
+  /// No description provided for @timerDisplayOverlayPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get timerDisplayOverlayPaused;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

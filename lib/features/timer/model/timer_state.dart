@@ -9,6 +9,7 @@ class TimerState {
     required this.enableFinalCountdown,
     required this.isRunning,
     required this.isPrestart,
+    required this.isPaused,
     this.prestartCount,
     this.customSeconds,
   });
@@ -20,6 +21,7 @@ class TimerState {
   final bool enableFinalCountdown;
   final bool isRunning;
   final bool isPrestart;
+  final bool isPaused;
   final int? prestartCount;
   final int? customSeconds;
 
@@ -33,6 +35,7 @@ class TimerState {
     bool? enableFinalCountdown,
     bool? isRunning,
     bool? isPrestart,
+    bool? isPaused,
     int? prestartCount,
     int? customSeconds,
   }) {
@@ -44,6 +47,7 @@ class TimerState {
       enableFinalCountdown: enableFinalCountdown ?? this.enableFinalCountdown,
       isRunning: isRunning ?? this.isRunning,
       isPrestart: isPrestart ?? this.isPrestart,
+      isPaused: isPaused ?? this.isPaused,
       prestartCount: prestartCount,
       customSeconds: customSeconds ?? this.customSeconds,
     );
@@ -66,6 +70,7 @@ class TimerState {
       enableFinalCountdown: enableFinalCountdown ?? true,
       isRunning: false,
       isPrestart: false,
+      isPaused: false,
       prestartCount: null,
       customSeconds: custom,
     );

@@ -59,7 +59,9 @@
   "dialogConfirm": "Confirm",
   "timerDisplayPrestart": "Get ready",
   "timerDisplayRunning": "Tap to pause / long press to reset",
+  "timerDisplayPaused": "Tap to resume / long press to reset",
   "timerDisplayCompleted": "Tap to start / long press to reset",
   "timerDisplayIdle": "Tap to start / long press to reset",
-  "timerDisplayOverlayCompleted": "Finished"
+  "timerDisplayOverlayCompleted": "Finished",
+  "timerDisplayOverlayPaused": "Paused"
 }
