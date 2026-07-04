@@ -10,28 +10,32 @@ import '../services/wake_service.dart';
 
 class TimerController extends ChangeNotifier {
   TimerController({
-    required SpeechService speechService,
+    required TimerSpeechService speechService,
     required SettingsStorage storage,
-  })  : _speech = speechService,
-        _storage = storage,
-        _state = TimerState.initial(
-          selectedSeconds: storage.loadTimerSelectedSeconds(),
-          customSeconds: storage.loadTimerCustomSeconds(),
-          enabledMilestones: storage.loadTimerEnabledMilestones(),
-          enableFinalCountdown: storage.loadTimerFinalCountdown(),
-        );
+    Future<void> Function() enableWake = ScreenWakeService.enable,
+    Future<void> Function() disableWake = ScreenWakeService.disable,
+  }) : _speech = speechService,
+       _storage = storage,
+       _enableWake = enableWake,
+       _disableWake = disableWake,
+       _state = TimerState.initial(
+         selectedSeconds: storage.loadTimerSelectedSeconds(),
+         customSeconds: storage.loadTimerCustomSeconds(),
+         enabledMilestones: storage.loadTimerEnabledMilestones(),
+         enableFinalCountdown: storage.loadTimerFinalCountdown(),
+       );
 
   TimerState _state;
   TimerState get state => _state;
 
-  final SpeechService _speech;
+  final TimerSpeechService _speech;
   final SettingsStorage _storage;
+  final Future<void> Function() _enableWake;
+  final Future<void> Function() _disableWake;
   Timer? _ticker;
   final Set<int> _announcedMilestones = <int>{};
   bool _disposed = false;
   bool _hasStartedOnce = false;
-  // 将最后10秒的数字播报串行化，避免相邻数字互相打断造成不流畅
-  Future<void> _finalSpeakQueue = Future.value();
 
   Future<void> init() async {
     await _speech.init();
@@ -53,7 +57,7 @@ class TimerController extends ChangeNotifier {
 
   void pause() {
     _ticker?.cancel();
-    unawaited(ScreenWakeService.disable());
+    unawaited(_disableWake());
     unawaited(_speech.stop());
     _setState(
       _state.copyWith(isRunning: false, isPrestart: false, prestartCount: null),
@@ -62,10 +66,8 @@ class TimerController extends ChangeNotifier {
 
   void reset({int? seconds}) {
     _ticker?.cancel();
-    unawaited(ScreenWakeService.disable());
+    unawaited(_disableWake());
     unawaited(_speech.stop());
-    // 清空最后十秒的串行播报队列，避免残留数字在重置后串播
-    _finalSpeakQueue = Future.value();
     final target = seconds ?? _state.selectedSeconds;
     final options = _rebuildDurationOptions(target);
     _setState(
@@ -137,7 +139,7 @@ class TimerController extends ChangeNotifier {
   @override
   void dispose() {
     _ticker?.cancel();
-    unawaited(ScreenWakeService.disable());
+    unawaited(_disableWake());
     _speech.dispose();
     _disposed = true;
     super.dispose();
@@ -152,9 +154,13 @@ class TimerController extends ChangeNotifier {
     final isResume = _hasStartedOnce && _state.remainingSeconds > 0;
 
     if (isResume) {
-      await ScreenWakeService.enable();
+      await _enableWake();
       _setState(
-        _state.copyWith(isRunning: true, isPrestart: false, prestartCount: null),
+        _state.copyWith(
+          isRunning: true,
+          isPrestart: false,
+          prestartCount: null,
+        ),
       );
       _startTicker();
       return;
@@ -184,7 +190,7 @@ class TimerController extends ChangeNotifier {
       return;
     }
 
-    await ScreenWakeService.enable();
+    await _enableWake();
     _setState(
       _state.copyWith(isPrestart: false, isRunning: true, prestartCount: null),
     );
@@ -208,13 +214,15 @@ class TimerController extends ChangeNotifier {
       }
 
       if (_state.enableFinalCountdown && next > 0 && next <= 10) {
-        _finalSpeakQueue = _finalSpeakQueue.then((_) => _speech.speakNumber(next));
+        // 跟随计时节拍播报，不排队补播过时数字。部分系统 TTS 的单次
+        // 播报会超过一秒，串行队列会积压并在后段产生突然加速的听感。
+        unawaited(_speech.speakNumber(next));
       }
 
       if (next <= 0) {
         unawaited(_speech.speakTimeUp());
         timer.cancel();
-        unawaited(ScreenWakeService.disable());
+        unawaited(_disableWake());
         _setState(
           _state.copyWith(
             remainingSeconds: 0,
