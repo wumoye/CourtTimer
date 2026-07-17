@@ -18,18 +18,17 @@ class TimerSettingsController extends ChangeNotifier {
   Timer? _previewFallbackTimer;
   bool _isPreviewing = false;
 
-  Future<bool> playPreview() async {
-    final asset = settings.endSoundAsset;
+  Future<bool> playPreview(String? asset) async {
     if (asset == null || asset.isEmpty) {
       return false;
     }
 
-    final relative = asset.startsWith('assets/')
-        ? asset.substring('assets/'.length)
-        : asset;
-    _previewPlayer ??= AudioPlayer()
-      ..setReleaseMode(ReleaseMode.stop)
-      ..setPlayerMode(PlayerMode.lowLatency);
+    final relative =
+        asset.startsWith('assets/') ? asset.substring('assets/'.length) : asset;
+    _previewPlayer ??=
+        AudioPlayer()
+          ..setReleaseMode(ReleaseMode.stop)
+          ..setPlayerMode(PlayerMode.lowLatency);
 
     try {
       await _previewPlayer!.stop();
@@ -38,8 +37,9 @@ class TimerSettingsController extends ChangeNotifier {
       _previewFallbackTimer?.cancel();
       _setPreviewing(true);
       await _previewPlayer!.play(AssetSource(relative));
-      _previewCompleteSub =
-          _previewPlayer!.onPlayerComplete.listen((_) => _resetPreviewFlag());
+      _previewCompleteSub = _previewPlayer!.onPlayerComplete.listen(
+        (_) => _resetPreviewFlag(),
+      );
       _previewStateSub = _previewPlayer!.onPlayerStateChanged.listen((state) {
         if (state == PlayerState.stopped || state == PlayerState.completed) {
           _resetPreviewFlag();

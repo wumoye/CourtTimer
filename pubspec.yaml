@@ -67,7 +67,8 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/audio/
+    - assets/audio/end/
+    - assets/audio/feedback/
 
 
 flutter_launcher_icons:

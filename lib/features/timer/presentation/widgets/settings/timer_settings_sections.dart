@@ -11,8 +11,12 @@ import '../../../../../l10n/app_localizations.dart';
 /// Centralised layout metrics for the timer settings UI so that spacing and
 /// padding live in a single place.
 class TimerSettingsLayout {
-  static const EdgeInsets sheetPadding =
-      EdgeInsets.fromLTRB(24, 24, 24, 16); // 减小底部内边距，缩短视觉长度
+  static const EdgeInsets sheetPadding = EdgeInsets.fromLTRB(
+    24,
+    24,
+    24,
+    16,
+  ); // 减小底部内边距，缩短视觉长度
 
   static const double sectionSpacing = 20;
   static const double noteTopSpacing = 28;
@@ -39,14 +43,15 @@ class LanguageSelectorSection extends StatelessWidget {
     return DropdownButtonFormField<AppLanguage>(
       value: controller.language,
       decoration: InputDecoration(labelText: l10n.settingsLanguageLabel),
-      items: AppLanguage.values
-          .map(
-            (language) => DropdownMenuItem<AppLanguage>(
-              value: language,
-              child: Text(_labelFor(language)),
-            ),
-          )
-          .toList(),
+      items:
+          AppLanguage.values
+              .map(
+                (language) => DropdownMenuItem<AppLanguage>(
+                  value: language,
+                  child: Text(_labelFor(language)),
+                ),
+              )
+              .toList(),
       onChanged: (value) {
         if (value != null) {
           controller.updateLanguage(value);
@@ -85,15 +90,16 @@ class SpeechModeSelectorSection extends StatelessWidget {
         labelText: l10n.settingsSpeechModeLabel,
         helperText: l10n.settingsSpeechModeHelp,
       ),
-      items: SpeechMode.values
-          .map(
-            (mode) => DropdownMenuItem<SpeechMode>(
-              value: mode,
-              enabled: mode == SpeechMode.systemTts,
-              child: Text(_labelFor(mode)),
-            ),
-          )
-          .toList(),
+      items:
+          SpeechMode.values
+              .map(
+                (mode) => DropdownMenuItem<SpeechMode>(
+                  value: mode,
+                  enabled: mode == SpeechMode.systemTts,
+                  child: Text(_labelFor(mode)),
+                ),
+              )
+              .toList(),
       onChanged: (value) {
         if (value != null) {
           controller.updateSpeechMode(value);
@@ -117,8 +123,11 @@ class SpeechModeSelectorSection extends StatelessWidget {
 class EndSoundSelectorSection extends StatelessWidget {
   const EndSoundSelectorSection({
     super.key,
-    required this.controller,
     required this.l10n,
+    required this.selectedAsset,
+    required this.onChanged,
+    required this.labelText,
+    required this.helperText,
     required this.assets,
     required this.isLoading,
     required this.isPreviewing,
@@ -126,8 +135,11 @@ class EndSoundSelectorSection extends StatelessWidget {
     required this.onStopPreview,
   });
 
-  final SettingsController controller;
   final AppLocalizations l10n;
+  final String? selectedAsset;
+  final ValueChanged<String?> onChanged;
+  final String labelText;
+  final String helperText;
   final List<String> assets;
   final bool isLoading;
   final bool isPreviewing;
@@ -136,21 +148,18 @@ class EndSoundSelectorSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final current = controller.endSoundAsset;
+    final current = selectedAsset;
     final isReady = !isLoading;
     final hasCurrent = current != null && assets.contains(current);
     final effectiveValue = isReady && hasCurrent ? current : null;
     if (isReady && current != null && !hasCurrent) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        controller.updateEndSoundAsset(null);
+        onChanged(null);
       });
     }
 
     return InputDecorator(
-      decoration: InputDecoration(
-        labelText: l10n.settingsEndSoundLabel,
-        helperText: l10n.settingsEndSoundHelp,
-      ),
+      decoration: InputDecoration(labelText: labelText, helperText: helperText),
       child: Row(
         children: [
           Expanded(
@@ -159,24 +168,23 @@ class EndSoundSelectorSection extends StatelessWidget {
                 isExpanded: true,
                 value: effectiveValue,
                 items: _buildItems(context),
-                onChanged: isLoading
-                    ? null
-                    : (value) => controller.updateEndSoundAsset(value),
+                onChanged: isLoading ? null : onChanged,
                 menuMaxHeight: TimerSettingsLayout.menuMaxHeight(context),
               ),
             ),
           ),
           const SizedBox(width: TimerSettingsLayout.previewButtonGap),
           FilledButton.tonalIcon(
-            onPressed: effectiveValue == null || isLoading
-                ? null
-                : () {
-                    if (isPreviewing) {
-                      unawaited(onStopPreview());
-                    } else {
-                      unawaited(onPreview());
-                    }
-                  },
+            onPressed:
+                effectiveValue == null || isLoading
+                    ? null
+                    : () {
+                      if (isPreviewing) {
+                        unawaited(onStopPreview());
+                      } else {
+                        unawaited(onPreview());
+                      }
+                    },
             icon: Icon(isPreviewing ? Icons.stop : Icons.play_arrow),
             label: Text(
               isPreviewing
@@ -260,10 +268,7 @@ class SpeechRateSelectorSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label),
-            Text(
-              '${value.toStringAsFixed(2)}x',
-              style: textTheme.labelMedium,
-            ),
+            Text('${value.toStringAsFixed(2)}x', style: textTheme.labelMedium),
           ],
         ),
         Slider(
@@ -274,10 +279,7 @@ class SpeechRateSelectorSection extends StatelessWidget {
           divisions: 14, // step 0.05 approx
           label: '${(value).toStringAsFixed(2)}x',
         ),
-        Text(
-          help,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+        Text(help, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }

@@ -60,15 +60,17 @@ class _FakeSpeech implements TimerSpeechService {
 }
 
 void main() {
-  Future<TimerController> createController(_FakeSpeech speech) async {
+  Future<TimerController> createController(
+    _FakeSpeech speech, {
+    Duration prestartDelay = Duration.zero,
+  }) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final prefs = await SharedPreferences.getInstance();
     final controller = TimerController(
       speechService: speech,
       storage: SettingsStorage(prefs),
-      tickerInterval: const Duration(milliseconds: 10),
-      prestartDelay: Duration.zero,
-      playToggleFeedback: () async {},
+      tickerInterval: const Duration(milliseconds: 20),
+      prestartDelay: prestartDelay,
       enableWake: () async {},
       disableWake: () async {},
     );
@@ -84,7 +86,7 @@ void main() {
     addTearDown(controller.dispose);
 
     await controller.toggleStartPause();
-    await Future<void>.delayed(const Duration(milliseconds: 140));
+    await Future<void>.delayed(const Duration(milliseconds: 400));
 
     expect(controller.state.remainingSeconds, 0);
     expect(controller.state.isRunning, isFalse);
@@ -92,7 +94,7 @@ void main() {
   });
 
   test(
-    'resuming after paused final-countdown speech keeps announcements alive',
+    'does not overlap final-countdown speech and resumes announcements after pause',
     () async {
       final speech = _FakeSpeech();
       final controller = await createController(speech);
@@ -100,16 +102,19 @@ void main() {
 
       speech.blockNumber(10);
       await controller.toggleStartPause();
-      await Future<void>.delayed(const Duration(milliseconds: 25));
-      expect(speech.numbers, contains(10));
+      final prestartAnnouncements = speech.numbers.length;
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      final countdownAnnouncements = speech.numbers.skip(prestartAnnouncements);
+      expect(countdownAnnouncements, contains(10));
+      expect(countdownAnnouncements.where((number) => number < 10), isEmpty);
 
       controller.pause();
       final pausedAt = controller.state.remainingSeconds;
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await Future<void>.delayed(const Duration(milliseconds: 80));
       expect(controller.state.remainingSeconds, pausedAt);
 
       await controller.toggleStartPause();
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await Future<void>.delayed(const Duration(milliseconds: 80));
 
       expect(speech.numbers, contains(pausedAt - 1));
       expect(controller.state.isRunning, isTrue);
@@ -131,6 +136,20 @@ void main() {
 
     speech.completeStop();
     await resume;
+    expect(controller.state.isRunning, isTrue);
+  });
+
+  test('starts the timer when prestart TTS never completes', () async {
+    final speech = _FakeSpeech();
+    final controller = await createController(
+      speech,
+      prestartDelay: const Duration(milliseconds: 1),
+    );
+    addTearDown(controller.dispose);
+
+    speech.blockNumber(3);
+    await controller.toggleStartPause();
+
     expect(controller.state.isRunning, isTrue);
   });
 }
