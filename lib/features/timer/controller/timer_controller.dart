@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/settings/settings_storage.dart';
 import '../model/milestones.dart';
@@ -10,28 +11,43 @@ import '../services/wake_service.dart';
 
 class TimerController extends ChangeNotifier {
   TimerController({
-    required SpeechService speechService,
+    required TimerSpeechService speechService,
     required SettingsStorage storage,
-  })  : _speech = speechService,
-        _storage = storage,
-        _state = TimerState.initial(
-          selectedSeconds: storage.loadTimerSelectedSeconds(),
-          customSeconds: storage.loadTimerCustomSeconds(),
-          enabledMilestones: storage.loadTimerEnabledMilestones(),
-          enableFinalCountdown: storage.loadTimerFinalCountdown(),
-        );
+    Duration tickerInterval = const Duration(seconds: 1),
+    Duration prestartDelay = const Duration(milliseconds: 250),
+    Future<void> Function()? playToggleFeedback,
+    Future<void> Function()? enableWake,
+    Future<void> Function()? disableWake,
+  }) : _speech = speechService,
+       _storage = storage,
+       _tickerInterval = tickerInterval,
+       _prestartDelay = prestartDelay,
+       _playToggleFeedback = playToggleFeedback ?? _defaultToggleFeedback,
+       _enableWake = enableWake ?? ScreenWakeService.enable,
+       _disableWake = disableWake ?? ScreenWakeService.disable,
+       _state = TimerState.initial(
+         selectedSeconds: storage.loadTimerSelectedSeconds(),
+         customSeconds: storage.loadTimerCustomSeconds(),
+         enabledMilestones: storage.loadTimerEnabledMilestones(),
+         enableFinalCountdown: storage.loadTimerFinalCountdown(),
+       );
 
   TimerState _state;
   TimerState get state => _state;
 
-  final SpeechService _speech;
+  final TimerSpeechService _speech;
   final SettingsStorage _storage;
+  final Duration _tickerInterval;
+  final Duration _prestartDelay;
+  final Future<void> Function() _playToggleFeedback;
+  final Future<void> Function() _enableWake;
+  final Future<void> Function() _disableWake;
   Timer? _ticker;
   final Set<int> _announcedMilestones = <int>{};
   bool _disposed = false;
   bool _hasStartedOnce = false;
-  // 将最后10秒的数字播报串行化，避免相邻数字互相打断造成不流畅
-  Future<void> _finalSpeakQueue = Future.value();
+  bool _startPending = false;
+  Future<void> _pendingSpeechStop = Future<void>.value();
 
   Future<void> init() async {
     await _speech.init();
@@ -40,6 +56,7 @@ class TimerController extends ChangeNotifier {
   }
 
   Future<void> toggleStartPause() async {
+    unawaited(_playToggleFeedback());
     if (_state.isRunning) {
       pause();
       return;
@@ -53,8 +70,8 @@ class TimerController extends ChangeNotifier {
 
   void pause() {
     _ticker?.cancel();
-    unawaited(ScreenWakeService.disable());
-    unawaited(_speech.stop());
+    unawaited(_disableWake());
+    _pendingSpeechStop = _speech.stop();
     _setState(
       _state.copyWith(
         isRunning: false,
@@ -67,10 +84,8 @@ class TimerController extends ChangeNotifier {
 
   void reset({int? seconds}) {
     _ticker?.cancel();
-    unawaited(ScreenWakeService.disable());
-    unawaited(_speech.stop());
-    // 清空最后十秒的串行播报队列，避免残留数字在重置后串播
-    _finalSpeakQueue = Future.value();
+    unawaited(_disableWake());
+    _pendingSpeechStop = _speech.stop();
     final target = seconds ?? _state.selectedSeconds;
     final options = _rebuildDurationOptions(target);
     _setState(
@@ -144,13 +159,26 @@ class TimerController extends ChangeNotifier {
   @override
   void dispose() {
     _ticker?.cancel();
-    unawaited(ScreenWakeService.disable());
+    unawaited(_disableWake());
     _speech.dispose();
     _disposed = true;
     super.dispose();
   }
 
   Future<void> _prepareAndStart() async {
+    if (_startPending) {
+      return;
+    }
+    _startPending = true;
+    try {
+      await _pendingSpeechStop;
+    } finally {
+      _startPending = false;
+    }
+    if (_state.isRunning || _state.isPrestart) {
+      return;
+    }
+
     if (_state.remainingSeconds <= 0) {
       _setState(_state.copyWith(remainingSeconds: _state.selectedSeconds));
       _hasStartedOnce = false;
@@ -159,7 +187,7 @@ class TimerController extends ChangeNotifier {
     final isResume = _hasStartedOnce && _state.remainingSeconds > 0;
 
     if (isResume) {
-      await ScreenWakeService.enable();
+      await _enableWake();
       _setState(
         _state.copyWith(
           isRunning: true,
@@ -186,7 +214,7 @@ class TimerController extends ChangeNotifier {
       if (!_state.isPrestart) {
         return;
       }
-      await Future.delayed(const Duration(milliseconds: 250));
+      await Future.delayed(_prestartDelay);
     }
 
     if (!_state.isPrestart) {
@@ -198,7 +226,7 @@ class TimerController extends ChangeNotifier {
       return;
     }
 
-    await ScreenWakeService.enable();
+    await _enableWake();
     _setState(
       _state.copyWith(
         isPrestart: false,
@@ -220,7 +248,7 @@ class TimerController extends ChangeNotifier {
 
   void _startTicker() {
     _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _ticker = Timer.periodic(_tickerInterval, (timer) {
       final current = _state.remainingSeconds;
       final next = current - 1;
 
@@ -229,13 +257,14 @@ class TimerController extends ChangeNotifier {
       }
 
       if (_state.enableFinalCountdown && next > 0 && next <= 10) {
-        _finalSpeakQueue = _finalSpeakQueue.then((_) => _speech.speakNumber(next));
+        // 跟随计时节拍播报，不排队补播过时数字。慢 TTS 不会阻塞后续数字。
+        unawaited(_speech.speakNumber(next));
       }
 
       if (next <= 0) {
         unawaited(_speech.speakTimeUp());
         timer.cancel();
-        unawaited(ScreenWakeService.disable());
+        unawaited(_disableWake());
         _setState(
           _state.copyWith(
             remainingSeconds: 0,
@@ -308,4 +337,7 @@ class TimerController extends ChangeNotifier {
     _state = newState;
     notifyListeners();
   }
+
+  static Future<void> _defaultToggleFeedback() =>
+      SystemSound.play(SystemSoundType.click);
 }

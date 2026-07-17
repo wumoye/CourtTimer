@@ -7,7 +7,17 @@ import '../../../core/settings/settings_controller.dart';
 import '../../../core/settings/speech_mode.dart';
 import '../utils/duration_formatter.dart';
 
-class SpeechService {
+abstract interface class TimerSpeechService {
+  Future<void> init();
+  Future<void> speakStart();
+  Future<void> speakTimeUp();
+  Future<void> speakNumber(int number);
+  Future<void> speakRemaining(int seconds);
+  Future<void> stop();
+  void dispose();
+}
+
+class SpeechService implements TimerSpeechService {
   SpeechService({required SettingsController settings}) : _settings = settings {
     _settings.addListener(_handleSettingsChanged);
     _audioPlayer
