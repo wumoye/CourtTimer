@@ -126,6 +126,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get timerDisplayRunning => 'タップで一時停止 / 長押しでリセット';
 
   @override
+  String get timerDisplayPaused => 'タップで再開 / 長押しでリセット';
+
+  @override
   String get timerDisplayCompleted => 'タップで開始 / 長押しでリセット';
 
   @override
@@ -133,4 +136,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get timerDisplayOverlayCompleted => '試合終了';
+
+  @override
+  String get timerDisplayOverlayPaused => '一時停止';
 }

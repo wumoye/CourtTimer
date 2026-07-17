@@ -56,7 +56,12 @@ class TimerController extends ChangeNotifier {
     unawaited(ScreenWakeService.disable());
     unawaited(_speech.stop());
     _setState(
-      _state.copyWith(isRunning: false, isPrestart: false, prestartCount: null),
+      _state.copyWith(
+        isRunning: false,
+        isPrestart: false,
+        isPaused: true,
+        prestartCount: null,
+      ),
     );
   }
 
@@ -75,6 +80,7 @@ class TimerController extends ChangeNotifier {
         durationOptions: options,
         isRunning: false,
         isPrestart: false,
+        isPaused: false,
         prestartCount: null,
         customSeconds: seconds ?? _state.customSeconds,
       ),
@@ -103,6 +109,7 @@ class TimerController extends ChangeNotifier {
         selectedSeconds: seconds,
         remainingSeconds: seconds,
         durationOptions: options,
+        isPaused: false,
       ),
     );
     _announcedMilestones.clear();
@@ -154,14 +161,21 @@ class TimerController extends ChangeNotifier {
     if (isResume) {
       await ScreenWakeService.enable();
       _setState(
-        _state.copyWith(isRunning: true, isPrestart: false, prestartCount: null),
+        _state.copyWith(
+          isRunning: true,
+          isPrestart: false,
+          isPaused: false,
+          prestartCount: null,
+        ),
       );
       _startTicker();
       return;
     }
 
     _announcedMilestones.clear();
-    _setState(_state.copyWith(isPrestart: true, prestartCount: 3));
+    _setState(
+      _state.copyWith(isPrestart: true, isPaused: false, prestartCount: 3),
+    );
 
     for (final number in [3, 2, 1]) {
       if (!_state.isPrestart) {
@@ -186,7 +200,12 @@ class TimerController extends ChangeNotifier {
 
     await ScreenWakeService.enable();
     _setState(
-      _state.copyWith(isPrestart: false, isRunning: true, prestartCount: null),
+      _state.copyWith(
+        isPrestart: false,
+        isRunning: true,
+        isPaused: false,
+        prestartCount: null,
+      ),
     );
     _hasStartedOnce = true;
     _startTicker();
@@ -194,7 +213,9 @@ class TimerController extends ChangeNotifier {
 
   void _cancelPrestart() {
     unawaited(_speech.stop());
-    _setState(_state.copyWith(isPrestart: false, prestartCount: null));
+    _setState(
+      _state.copyWith(isPrestart: false, isPaused: false, prestartCount: null),
+    );
   }
 
   void _startTicker() {
@@ -220,6 +241,7 @@ class TimerController extends ChangeNotifier {
             remainingSeconds: 0,
             isRunning: false,
             isPrestart: false,
+            isPaused: false,
             prestartCount: null,
           ),
         );

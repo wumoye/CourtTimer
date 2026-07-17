@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../core/settings/settings_scope.dart';
 import '../../../../core/settings/speech_scope.dart';
@@ -132,7 +135,7 @@ class _TimerPageState extends State<TimerPage> {
                     child: Center(
                       child: TimerDisplay(
                         state: state,
-                        onToggle: () => _controller.toggleStartPause(),
+                        onToggle: _toggleTimer,
                         onReset: () => _controller.reset(),
                       ),
                     ),
@@ -158,6 +161,14 @@ class _TimerPageState extends State<TimerPage> {
         );
       },
     );
+  }
+
+  void _toggleTimer() {
+    if (_controller.state.isRunning) {
+      unawaited(HapticFeedback.heavyImpact());
+      unawaited(SystemSound.play(SystemSoundType.click));
+    }
+    unawaited(_controller.toggleStartPause());
   }
 
   Future<void> _handleCustomDuration(TimerState state) async {

@@ -71,6 +71,10 @@ class TimerDisplayTheme {
     );
   }
 
+  static TextStyle pauseOverlay(TextStyle headlineStyle) {
+    return headlineStyle.copyWith(fontSize: 36, letterSpacing: 2);
+  }
+
   static TextStyle caption(TextTheme textTheme) {
     return (textTheme.titleMedium ??
             const TextStyle(fontSize: 18, fontWeight: FontWeight.w500))

@@ -57,7 +57,9 @@
   "dialogConfirm": "決定",
   "timerDisplayPrestart": "準備",
   "timerDisplayRunning": "タップで一時停止 / 長押しでリセット",
+  "timerDisplayPaused": "タップで再開 / 長押しでリセット",
   "timerDisplayCompleted": "タップで開始 / 長押しでリセット",
   "timerDisplayIdle": "タップで開始 / 長押しでリセット",
-  "timerDisplayOverlayCompleted": "試合終了"
+  "timerDisplayOverlayCompleted": "試合終了",
+  "timerDisplayOverlayPaused": "一時停止"
 }

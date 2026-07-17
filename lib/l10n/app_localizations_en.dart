@@ -38,8 +38,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsEndSoundLabel => 'End sound';
 
-  
-
   @override
   String get speechModeSystem => 'Device TTS (offline)';
 
@@ -128,6 +126,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timerDisplayRunning => 'Tap to pause / long press to reset';
 
   @override
+  String get timerDisplayPaused => 'Tap to resume / long press to reset';
+
+  @override
   String get timerDisplayCompleted => 'Tap to start / long press to reset';
 
   @override
@@ -135,4 +136,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get timerDisplayOverlayCompleted => 'Finished';
+
+  @override
+  String get timerDisplayOverlayPaused => 'Paused';
 }

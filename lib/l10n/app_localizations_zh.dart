@@ -126,6 +126,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get timerDisplayRunning => '轻触暂停 / 长按重置';
 
   @override
+  String get timerDisplayPaused => '轻触继续 / 长按重置';
+
+  @override
   String get timerDisplayCompleted => '轻触开始 / 长按重置';
 
   @override
@@ -133,4 +136,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get timerDisplayOverlayCompleted => '已结束';
+
+  @override
+  String get timerDisplayOverlayPaused => '已暂停';
 }
