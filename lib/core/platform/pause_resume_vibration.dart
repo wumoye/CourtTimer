@@ -5,7 +5,7 @@ class PauseResumeVibration {
   PauseResumeVibration._();
 
   static const MethodChannel _channel = MethodChannel(
-    'io.github.wumoye.courttimer/vibration',
+    'com.wumoye.courttimer/vibration',
   );
 
   static Future<void> vibrate() async {
