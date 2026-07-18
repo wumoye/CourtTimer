@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import '../../../../core/platform/pause_resume_vibration.dart';
 import '../../../../core/settings/settings_scope.dart';
 import '../../../../core/settings/speech_scope.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -172,7 +172,7 @@ class _TimerPageState extends State<TimerPage> {
   void _toggleTimer() {
     final state = _controller.state;
     if (state.isRunning || state.isPaused) {
-      unawaited(HapticFeedback.heavyImpact());
+      unawaited(PauseResumeVibration.vibrate());
       unawaited(SpeechScope.of(context).playFeedback());
     }
     unawaited(_controller.toggleStartPause());
