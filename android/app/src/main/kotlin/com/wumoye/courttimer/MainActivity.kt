@@ -1,4 +1,4 @@
-package io.github.wumoye.courttimer
+package com.wumoye.courttimer
 
 import android.content.Context
 import android.os.Build
@@ -13,7 +13,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "io.github.wumoye.courttimer/vibration",
+            "com.wumoye.courttimer/vibration",
         ).setMethodCallHandler { call, result ->
             if (call.method != "pauseResume") {
                 result.notImplemented()
