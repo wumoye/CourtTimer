@@ -11,6 +11,7 @@ class SettingsStorage {
   static const _keyLanguage = 'settings.language';
   static const _keySpeechMode = 'settings.speechMode';
   static const _keyEndSound = 'settings.endSound';
+  static const _keyFeedbackSound = 'settings.feedbackSound';
   static const _keySpeechRate = 'settings.speechRate';
 
   static const _keyTimerSelectedSeconds = 'timer.selectedSeconds';
@@ -56,6 +57,22 @@ class SettingsStorage {
       return;
     }
     _prefs.setString(_keyEndSound, path);
+  }
+
+  String? loadFeedbackSound() {
+    final path = _prefs.getString(_keyFeedbackSound);
+    if (path == null || path.isEmpty) {
+      return null;
+    }
+    return path;
+  }
+
+  void saveFeedbackSound(String? path) {
+    if (path == null || path.isEmpty) {
+      _prefs.remove(_keyFeedbackSound);
+      return;
+    }
+    _prefs.setString(_keyFeedbackSound, path);
   }
 
   double? loadSpeechRate() => _prefs.getDouble(_keySpeechRate);

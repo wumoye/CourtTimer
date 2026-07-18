@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../../../../core/platform/pause_resume_vibration.dart';
 import '../../../../core/settings/settings_scope.dart';
 import '../../../../core/settings/speech_scope.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -63,7 +66,12 @@ class _TimerPageState extends State<TimerPage> {
         return Scaffold(
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
+              padding: const EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: 8,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -91,9 +99,10 @@ class _TimerPageState extends State<TimerPage> {
                           const SizedBox(height: 24),
                           ExpansionTile(
                             initiallyExpanded: _announcementsExpanded,
-                            onExpansionChanged: (expanded) => setState(
-                              () => _announcementsExpanded = expanded,
-                            ),
+                            onExpansionChanged:
+                                (expanded) => setState(
+                                  () => _announcementsExpanded = expanded,
+                                ),
                             title: Text(
                               l10n.announcementSectionTitle,
                               style: Theme.of(context).textTheme.titleMedium,
@@ -110,15 +119,15 @@ class _TimerPageState extends State<TimerPage> {
                                   enabledMilestones: state.enabledMilestones,
                                   enableFinalCountdown:
                                       state.enableFinalCountdown,
-                                  onMilestoneChanged: (seconds, enabled) =>
-                                      _controller.toggleMilestone(
-                                          seconds, enabled),
+                                  onMilestoneChanged:
+                                      (seconds, enabled) => _controller
+                                          .toggleMilestone(seconds, enabled),
                                   onFinalCountdownChanged:
                                       _controller.toggleFinalCountdown,
                                   isInteractionDisabled:
                                       state.isRunning || state.isPrestart,
-                                  onAddMilestone: () =>
-                                      _handleAddMilestone(state),
+                                  onAddMilestone:
+                                      () => _handleAddMilestone(state),
                                 ),
                               ),
                             ],
@@ -132,7 +141,7 @@ class _TimerPageState extends State<TimerPage> {
                     child: Center(
                       child: TimerDisplay(
                         state: state,
-                        onToggle: () => _controller.toggleStartPause(),
+                        onToggle: _toggleTimer,
                         onReset: () => _controller.reset(),
                       ),
                     ),
@@ -158,6 +167,15 @@ class _TimerPageState extends State<TimerPage> {
         );
       },
     );
+  }
+
+  void _toggleTimer() {
+    final state = _controller.state;
+    if (state.isRunning || state.isPaused) {
+      unawaited(PauseResumeVibration.vibrate());
+      unawaited(SpeechScope.of(context).playFeedback());
+    }
+    unawaited(_controller.toggleStartPause());
   }
 
   Future<void> _handleCustomDuration(TimerState state) async {

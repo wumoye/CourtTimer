@@ -7,10 +7,23 @@ import '../../../core/settings/settings_controller.dart';
 import '../../../core/settings/speech_mode.dart';
 import '../utils/duration_formatter.dart';
 
-class SpeechService {
+abstract interface class TimerSpeechService {
+  Future<void> init();
+  Future<void> speakStart();
+  Future<void> speakTimeUp();
+  Future<void> speakNumber(int number);
+  Future<void> speakRemaining(int seconds);
+  Future<void> stop();
+  void dispose();
+}
+
+class SpeechService implements TimerSpeechService {
   SpeechService({required SettingsController settings}) : _settings = settings {
     _settings.addListener(_handleSettingsChanged);
     _audioPlayer
+      ..setReleaseMode(ReleaseMode.stop)
+      ..setPlayerMode(PlayerMode.lowLatency);
+    _feedbackPlayer
       ..setReleaseMode(ReleaseMode.stop)
       ..setPlayerMode(PlayerMode.lowLatency);
   }
@@ -18,6 +31,7 @@ class SpeechService {
   final SettingsController _settings;
   final FlutterTts _tts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final AudioPlayer _feedbackPlayer = AudioPlayer();
   bool _initialized = false;
 
   AppLanguage get _language => _settings.language;
@@ -70,10 +84,29 @@ class SpeechService {
     await _audioPlayer.stop();
   }
 
+  /// Plays the user-selected sound for pause and resume feedback.
+  Future<void> playFeedback() async {
+    final asset = _settings.feedbackSoundAsset;
+    if (asset == null || asset.isEmpty) {
+      await SystemSound.play(SystemSoundType.alert);
+      return;
+    }
+
+    final relative =
+        asset.startsWith('assets/') ? asset.substring('assets/'.length) : asset;
+    try {
+      await _feedbackPlayer.stop();
+      await _feedbackPlayer.play(AssetSource(relative));
+    } catch (_) {
+      await SystemSound.play(SystemSoundType.alert);
+    }
+  }
+
   void dispose() {
     _settings.removeListener(_handleSettingsChanged);
     _tts.stop();
     _audioPlayer.dispose();
+    _feedbackPlayer.dispose();
   }
 
   Future<void> _applyTtsConfiguration() async {
@@ -143,12 +176,17 @@ class SpeechService {
   }
 
   Future<void> _speak(String text) async {
-    await init();
-    if (_mode != SpeechMode.systemTts) {
-      return;
+    try {
+      await init();
+      if (_mode != SpeechMode.systemTts) {
+        return;
+      }
+      await _tts.stop();
+      await _tts.speak(text);
+    } catch (_) {
+      // TTS is optional feedback. A platform-engine failure must not block
+      // timer state changes or surface as an unhandled asynchronous error.
     }
-    await _tts.stop();
-    await _tts.speak(text);
   }
 
   Future<void> _playEndSound() async {

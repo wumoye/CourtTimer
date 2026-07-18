@@ -1,6 +1,5 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../../core/settings/settings_controller.dart';
 import '../../../../../core/settings/settings_scope.dart';
@@ -82,12 +81,44 @@ class _TimerSettingsSheetState extends State<TimerSettingsSheet> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         EndSoundSelectorSection(
-                          controller: settings,
                           l10n: l10n,
-                          assets: assets,
+                          selectedAsset: settings.feedbackSoundAsset,
+                          onChanged: settings.updateFeedbackSoundAsset,
+                          labelText: '暂停/恢复提示音',
+                          helperText: '选择暂停或恢复时播放的短提示音。',
+                          assets:
+                              assets
+                                  .where((path) => path.contains('/feedback/'))
+                                  .toList(),
                           isLoading: isLoading,
                           isPreviewing: controller.isPreviewing,
-                          onPreview: () => _handlePreview(context),
+                          onPreview:
+                              () => _handlePreview(
+                                context,
+                                settings.feedbackSoundAsset,
+                              ),
+                          onStopPreview: controller.stopPreview,
+                        ),
+                        const SizedBox(
+                          height: TimerSettingsLayout.sectionSpacing,
+                        ),
+                        EndSoundSelectorSection(
+                          l10n: l10n,
+                          selectedAsset: settings.endSoundAsset,
+                          onChanged: settings.updateEndSoundAsset,
+                          labelText: l10n.settingsEndSoundLabel,
+                          helperText: l10n.settingsEndSoundHelp,
+                          assets:
+                              assets
+                                  .where((path) => path.contains('/end/'))
+                                  .toList(),
+                          isLoading: isLoading,
+                          isPreviewing: controller.isPreviewing,
+                          onPreview:
+                              () => _handlePreview(
+                                context,
+                                settings.endSoundAsset,
+                              ),
                           onStopPreview: controller.stopPreview,
                         ),
                         if (snapshot.hasError)
@@ -95,12 +126,11 @@ class _TimerSettingsSheetState extends State<TimerSettingsSheet> {
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               l10n.endSoundPreviewError,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                    color: Theme.of(context).colorScheme.error,
-                                  ),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
                             ),
                           ),
                       ],
@@ -128,33 +158,36 @@ class _TimerSettingsSheetState extends State<TimerSettingsSheet> {
     }
   }
 
-  Future<void> _handlePreview(BuildContext context) async {
-    final success = await _controller?.playPreview() ?? false;
+  Future<void> _handlePreview(BuildContext context, String? asset) async {
+    final success = await _controller?.playPreview(asset) ?? false;
     if (!context.mounted) {
       return;
     }
     final l10n = AppLocalizations.of(context)!;
     if (!success) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.endSoundPreviewError)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.endSoundPreviewError)));
     }
   }
 
   Future<List<String>> _loadAudioAssets(BuildContext context) async {
     try {
-      final manifestJson = await DefaultAssetBundle.of(context)
-          .loadString('AssetManifest.json');
-      final Map<String, dynamic> manifest = json.decode(manifestJson);
-      final audioAssets = manifest.keys
-          .where(
-            (path) =>
-                path.startsWith('assets/audio/') &&
-                (path.endsWith('.mp3') ||
-                    path.endsWith('.wav') ||
-                    path.endsWith('.m4a')),
-          )
-          .toList()
-        ..sort();
+      final manifest = await AssetManifest.loadFromAssetBundle(
+        DefaultAssetBundle.of(context),
+      );
+      final audioAssets =
+          manifest
+              .listAssets()
+              .where(
+                (path) =>
+                    path.startsWith('assets/audio/') &&
+                    (path.endsWith('.mp3') ||
+                        path.endsWith('.wav') ||
+                        path.endsWith('.m4a')),
+              )
+              .toList()
+            ..sort();
       return audioAssets;
     } catch (_) {
       // 兜底：无法读取资源清单时，返回空列表，UI 将显示“无”，且禁用预览。

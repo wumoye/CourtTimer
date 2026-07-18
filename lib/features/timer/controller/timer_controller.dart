@@ -10,28 +10,42 @@ import '../services/wake_service.dart';
 
 class TimerController extends ChangeNotifier {
   TimerController({
-    required SpeechService speechService,
+    required TimerSpeechService speechService,
     required SettingsStorage storage,
-  })  : _speech = speechService,
-        _storage = storage,
-        _state = TimerState.initial(
-          selectedSeconds: storage.loadTimerSelectedSeconds(),
-          customSeconds: storage.loadTimerCustomSeconds(),
-          enabledMilestones: storage.loadTimerEnabledMilestones(),
-          enableFinalCountdown: storage.loadTimerFinalCountdown(),
-        );
+    Duration tickerInterval = const Duration(seconds: 1),
+    Duration prestartDelay = const Duration(milliseconds: 250),
+    Future<void> Function()? enableWake,
+    Future<void> Function()? disableWake,
+  }) : _speech = speechService,
+       _storage = storage,
+       _tickerInterval = tickerInterval,
+       _prestartDelay = prestartDelay,
+       _enableWake = enableWake ?? ScreenWakeService.enable,
+       _disableWake = disableWake ?? ScreenWakeService.disable,
+       _state = TimerState.initial(
+         selectedSeconds: storage.loadTimerSelectedSeconds(),
+         customSeconds: storage.loadTimerCustomSeconds(),
+         enabledMilestones: storage.loadTimerEnabledMilestones(),
+         enableFinalCountdown: storage.loadTimerFinalCountdown(),
+       );
 
   TimerState _state;
   TimerState get state => _state;
 
-  final SpeechService _speech;
+  final TimerSpeechService _speech;
   final SettingsStorage _storage;
+  final Duration _tickerInterval;
+  final Duration _prestartDelay;
+  final Future<void> Function() _enableWake;
+  final Future<void> Function() _disableWake;
   Timer? _ticker;
   final Set<int> _announcedMilestones = <int>{};
   bool _disposed = false;
   bool _hasStartedOnce = false;
-  // 将最后10秒的数字播报串行化，避免相邻数字互相打断造成不流畅
-  Future<void> _finalSpeakQueue = Future.value();
+  bool _startPending = false;
+  bool _finalCountdownSpeechActive = false;
+  int _speechGeneration = 0;
+  Future<void> _pendingSpeechStop = Future<void>.value();
 
   Future<void> init() async {
     await _speech.init();
@@ -53,19 +67,26 @@ class TimerController extends ChangeNotifier {
 
   void pause() {
     _ticker?.cancel();
-    unawaited(ScreenWakeService.disable());
-    unawaited(_speech.stop());
+    unawaited(_disableWake());
+    _speechGeneration++;
+    _finalCountdownSpeechActive = false;
+    _pendingSpeechStop = _speech.stop();
     _setState(
-      _state.copyWith(isRunning: false, isPrestart: false, prestartCount: null),
+      _state.copyWith(
+        isRunning: false,
+        isPrestart: false,
+        isPaused: true,
+        prestartCount: null,
+      ),
     );
   }
 
   void reset({int? seconds}) {
     _ticker?.cancel();
-    unawaited(ScreenWakeService.disable());
-    unawaited(_speech.stop());
-    // 清空最后十秒的串行播报队列，避免残留数字在重置后串播
-    _finalSpeakQueue = Future.value();
+    unawaited(_disableWake());
+    _speechGeneration++;
+    _finalCountdownSpeechActive = false;
+    _pendingSpeechStop = _speech.stop();
     final target = seconds ?? _state.selectedSeconds;
     final options = _rebuildDurationOptions(target);
     _setState(
@@ -75,6 +96,7 @@ class TimerController extends ChangeNotifier {
         durationOptions: options,
         isRunning: false,
         isPrestart: false,
+        isPaused: false,
         prestartCount: null,
         customSeconds: seconds ?? _state.customSeconds,
       ),
@@ -103,6 +125,7 @@ class TimerController extends ChangeNotifier {
         selectedSeconds: seconds,
         remainingSeconds: seconds,
         durationOptions: options,
+        isPaused: false,
       ),
     );
     _announcedMilestones.clear();
@@ -137,13 +160,26 @@ class TimerController extends ChangeNotifier {
   @override
   void dispose() {
     _ticker?.cancel();
-    unawaited(ScreenWakeService.disable());
+    unawaited(_disableWake());
     _speech.dispose();
     _disposed = true;
     super.dispose();
   }
 
   Future<void> _prepareAndStart() async {
+    if (_startPending) {
+      return;
+    }
+    _startPending = true;
+    try {
+      await _pendingSpeechStop;
+    } finally {
+      _startPending = false;
+    }
+    if (_state.isRunning || _state.isPrestart) {
+      return;
+    }
+
     if (_state.remainingSeconds <= 0) {
       _setState(_state.copyWith(remainingSeconds: _state.selectedSeconds));
       _hasStartedOnce = false;
@@ -152,27 +188,34 @@ class TimerController extends ChangeNotifier {
     final isResume = _hasStartedOnce && _state.remainingSeconds > 0;
 
     if (isResume) {
-      await ScreenWakeService.enable();
+      await _enableWake();
       _setState(
-        _state.copyWith(isRunning: true, isPrestart: false, prestartCount: null),
+        _state.copyWith(
+          isRunning: true,
+          isPrestart: false,
+          isPaused: false,
+          prestartCount: null,
+        ),
       );
       _startTicker();
       return;
     }
 
     _announcedMilestones.clear();
-    _setState(_state.copyWith(isPrestart: true, prestartCount: 3));
+    _setState(
+      _state.copyWith(isPrestart: true, isPaused: false, prestartCount: 3),
+    );
 
     for (final number in [3, 2, 1]) {
       if (!_state.isPrestart) {
         return;
       }
       _setState(_state.copyWith(prestartCount: number));
-      await _speech.speakNumber(number);
+      await _speakPrestartNumber(number);
       if (!_state.isPrestart) {
         return;
       }
-      await Future.delayed(const Duration(milliseconds: 250));
+      await Future.delayed(_prestartDelay);
     }
 
     if (!_state.isPrestart) {
@@ -184,22 +227,44 @@ class TimerController extends ChangeNotifier {
       return;
     }
 
-    await ScreenWakeService.enable();
+    await _enableWake();
     _setState(
-      _state.copyWith(isPrestart: false, isRunning: true, prestartCount: null),
+      _state.copyWith(
+        isPrestart: false,
+        isRunning: true,
+        isPaused: false,
+        prestartCount: null,
+      ),
     );
     _hasStartedOnce = true;
     _startTicker();
   }
 
+  Future<void> _speakPrestartNumber(int number) async {
+    final speech = _speech.speakNumber(number).catchError((_) {});
+    // A device TTS engine can fail to send its completion callback. The visual
+    // prestart must still complete so the actual timer is never held hostage by
+    // a broken speech service.
+    if (_prestartDelay == Duration.zero) {
+      await speech;
+      return;
+    }
+    await Future.any<void>(<Future<void>>[
+      speech,
+      Future<void>.delayed(const Duration(milliseconds: 900)),
+    ]);
+  }
+
   void _cancelPrestart() {
     unawaited(_speech.stop());
-    _setState(_state.copyWith(isPrestart: false, prestartCount: null));
+    _setState(
+      _state.copyWith(isPrestart: false, isPaused: false, prestartCount: null),
+    );
   }
 
   void _startTicker() {
     _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _ticker = Timer.periodic(_tickerInterval, (timer) {
       final current = _state.remainingSeconds;
       final next = current - 1;
 
@@ -208,18 +273,19 @@ class TimerController extends ChangeNotifier {
       }
 
       if (_state.enableFinalCountdown && next > 0 && next <= 10) {
-        _finalSpeakQueue = _finalSpeakQueue.then((_) => _speech.speakNumber(next));
+        _announceFinalNumber(next);
       }
 
       if (next <= 0) {
         unawaited(_speech.speakTimeUp());
         timer.cancel();
-        unawaited(ScreenWakeService.disable());
+        unawaited(_disableWake());
         _setState(
           _state.copyWith(
             remainingSeconds: 0,
             isRunning: false,
             isPrestart: false,
+            isPaused: false,
             prestartCount: null,
           ),
         );
@@ -229,6 +295,24 @@ class TimerController extends ChangeNotifier {
 
       _setState(_state.copyWith(remainingSeconds: next));
     });
+  }
+
+  void _announceFinalNumber(int number) {
+    // Android TTS is a single output stream. Do not enqueue stale countdown
+    // numbers while the current one is still playing, otherwise they overlap.
+    if (_finalCountdownSpeechActive) {
+      return;
+    }
+
+    _finalCountdownSpeechActive = true;
+    final generation = _speechGeneration;
+    unawaited(
+      _speech.speakNumber(number).whenComplete(() {
+        if (generation == _speechGeneration) {
+          _finalCountdownSpeechActive = false;
+        }
+      }),
+    );
   }
 
   bool _shouldAnnounceMilestone(int seconds) {
