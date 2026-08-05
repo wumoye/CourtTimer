@@ -201,8 +201,10 @@ class SpeechService implements TimerSpeechService {
       if (_mode != SpeechMode.systemTts) {
         return;
       }
+      // Stop can cause an Android TTS engine to abandon audio focus. It must
+      // happen before requesting the focus that ducks background music.
+      await _tts.stop();
       await _withDuckedBackgroundAudio(() async {
-        await _tts.stop();
         // The Android method channel owns the transient ducking focus. Letting
         // the TTS engine request its own focus here can override that request
         // on some devices and prevent the background player from ducking.
