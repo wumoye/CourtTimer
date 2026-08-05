@@ -32,6 +32,9 @@ class SpeechService implements TimerSpeechService {
   final FlutterTts _tts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
   final AudioPlayer _feedbackPlayer = AudioPlayer();
+  static const _audioFocusChannel = MethodChannel(
+    'com.wumoye.courttimer/audio_focus',
+  );
   bool _initialized = false;
   bool _audioContextConfigured = false;
 
@@ -198,8 +201,13 @@ class SpeechService implements TimerSpeechService {
       if (_mode != SpeechMode.systemTts) {
         return;
       }
-      await _tts.stop();
-      await _tts.speak(text, focus: true);
+      await _withDuckedBackgroundAudio(() async {
+        await _tts.stop();
+        // The Android method channel owns the transient ducking focus. Letting
+        // the TTS engine request its own focus here can override that request
+        // on some devices and prevent the background player from ducking.
+        await _tts.speak(text);
+      });
     } catch (_) {
       // TTS is optional feedback. A platform-engine failure must not block
       // timer state changes or surface as an unhandled asynchronous error.
@@ -246,6 +254,27 @@ class SpeechService implements TimerSpeechService {
       _audioContextConfigured = true;
     } catch (_) {
       // Audio feedback remains best-effort if a platform lacks audio contexts.
+    }
+  }
+
+  Future<void> _withDuckedBackgroundAudio(
+    Future<void> Function() action,
+  ) async {
+    var focusGranted = false;
+    try {
+      focusGranted =
+          await _audioFocusChannel.invokeMethod<bool>('requestDucking') ??
+          false;
+      await action();
+    } finally {
+      if (focusGranted) {
+        try {
+          await _audioFocusChannel.invokeMethod<void>('abandonDucking');
+        } catch (_) {
+          // Audio focus is an Android enhancement; keep speech functional if
+          // the platform channel is unavailable.
+        }
+      }
     }
   }
 }
