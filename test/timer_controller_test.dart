@@ -11,6 +11,7 @@ class _FakeSpeech implements TimerSpeechService {
   int timeUpCalls = 0;
   int stopCalls = 0;
   Completer<void>? _blockedNumber;
+  Completer<void>? _activeBlockedNumber;
   int? _numberToBlock;
   Completer<void>? _pendingStop;
 
@@ -26,6 +27,11 @@ class _FakeSpeech implements TimerSpeechService {
     _pendingStop = null;
   }
 
+  void completeBlockedNumber() {
+    _activeBlockedNumber?.complete();
+    _activeBlockedNumber = null;
+  }
+
   @override
   void dispose() {}
 
@@ -37,6 +43,7 @@ class _FakeSpeech implements TimerSpeechService {
     numbers.add(number);
     final blocked = number == _numberToBlock ? _blockedNumber : null;
     if (blocked != null) {
+      _activeBlockedNumber = blocked;
       _blockedNumber = null;
       _numberToBlock = null;
     }
@@ -116,8 +123,37 @@ void main() {
       await controller.toggleStartPause();
       await Future<void>.delayed(const Duration(milliseconds: 80));
 
+      expect(speech.numbers, contains(pausedAt));
       expect(speech.numbers, contains(pausedAt - 1));
       expect(controller.state.isRunning, isTrue);
+    },
+  );
+
+  test(
+    'queues every final countdown number before the time-up prompt',
+    () async {
+      final speech = _FakeSpeech();
+      final controller = await createController(speech);
+      addTearDown(controller.dispose);
+
+      speech.blockNumber(10);
+      await controller.toggleStartPause();
+      final prestartAnnouncements = speech.numbers.length;
+      await Future<void>.delayed(const Duration(milliseconds: 280));
+
+      expect(controller.state.remainingSeconds, 0);
+      final countdownNumbers = speech.numbers.skip(prestartAnnouncements);
+      expect(countdownNumbers, contains(10));
+      expect(countdownNumbers.where((number) => number < 10), isEmpty);
+
+      speech.completeBlockedNumber();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        speech.numbers.skip(prestartAnnouncements),
+        containsAllInOrder(<int>[10, 9, 8, 7, 6, 5, 4, 3, 2, 1]),
+      );
+      expect(speech.timeUpCalls, 1);
     },
   );
 

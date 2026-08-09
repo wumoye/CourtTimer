@@ -43,9 +43,9 @@ class TimerController extends ChangeNotifier {
   bool _disposed = false;
   bool _hasStartedOnce = false;
   bool _startPending = false;
-  bool _finalCountdownSpeechActive = false;
   int _speechGeneration = 0;
   Future<void> _pendingSpeechStop = Future<void>.value();
+  Future<void> _finalCountdownSpeechQueue = Future<void>.value();
 
   Future<void> init() async {
     await _speech.init();
@@ -69,7 +69,7 @@ class TimerController extends ChangeNotifier {
     _ticker?.cancel();
     unawaited(_disableWake());
     _speechGeneration++;
-    _finalCountdownSpeechActive = false;
+    _finalCountdownSpeechQueue = Future<void>.value();
     _pendingSpeechStop = _speech.stop();
     _setState(
       _state.copyWith(
@@ -85,7 +85,7 @@ class TimerController extends ChangeNotifier {
     _ticker?.cancel();
     unawaited(_disableWake());
     _speechGeneration++;
-    _finalCountdownSpeechActive = false;
+    _finalCountdownSpeechQueue = Future<void>.value();
     _pendingSpeechStop = _speech.stop();
     final target = seconds ?? _state.selectedSeconds;
     final options = _rebuildDurationOptions(target);
@@ -161,6 +161,8 @@ class TimerController extends ChangeNotifier {
   void dispose() {
     _ticker?.cancel();
     unawaited(_disableWake());
+    _speechGeneration++;
+    _finalCountdownSpeechQueue = Future<void>.value();
     _speech.dispose();
     _disposed = true;
     super.dispose();
@@ -197,6 +199,13 @@ class TimerController extends ChangeNotifier {
           prestartCount: null,
         ),
       );
+      // Pausing stops TTS and clears its queue. Replay the second currently
+      // shown on screen before ticking again so resuming at (for example) 7
+      // never jumps straight to a spoken 6.
+      final remaining = _state.remainingSeconds;
+      if (_state.enableFinalCountdown && remaining > 0 && remaining <= 10) {
+        _announceFinalNumber(remaining);
+      }
       _startTicker();
       return;
     }
@@ -277,7 +286,6 @@ class TimerController extends ChangeNotifier {
       }
 
       if (next <= 0) {
-        unawaited(_speech.speakTimeUp());
         timer.cancel();
         unawaited(_disableWake());
         _setState(
@@ -290,6 +298,7 @@ class TimerController extends ChangeNotifier {
           ),
         );
         _hasStartedOnce = false;
+        _enqueueFinalTimeUp();
         return;
       }
 
@@ -298,21 +307,33 @@ class TimerController extends ChangeNotifier {
   }
 
   void _announceFinalNumber(int number) {
-    // Android TTS is a single output stream. Do not enqueue stale countdown
-    // numbers while the current one is still playing, otherwise they overlap.
-    if (_finalCountdownSpeechActive) {
-      return;
-    }
-
-    _finalCountdownSpeechActive = true;
     final generation = _speechGeneration;
-    unawaited(
-      _speech.speakNumber(number).whenComplete(() {
-        if (generation == _speechGeneration) {
-          _finalCountdownSpeechActive = false;
-        }
-      }),
-    );
+    // Keep all 10 final numbers in order. The old "busy" gate intentionally
+    // dropped a number whenever device TTS took longer than one second.
+    _finalCountdownSpeechQueue = _finalCountdownSpeechQueue.then((_) async {
+      if (generation != _speechGeneration) {
+        return;
+      }
+      try {
+        await _speech.speakNumber(number);
+      } catch (_) {
+        // Speech feedback must never stall the timer or the next queued item.
+      }
+    });
+  }
+
+  void _enqueueFinalTimeUp() {
+    final generation = _speechGeneration;
+    _finalCountdownSpeechQueue = _finalCountdownSpeechQueue.then((_) async {
+      if (generation != _speechGeneration) {
+        return;
+      }
+      try {
+        await _speech.speakTimeUp();
+      } catch (_) {
+        // The visual timer has already completed even if platform TTS fails.
+      }
+    });
   }
 
   bool _shouldAnnounceMilestone(int seconds) {

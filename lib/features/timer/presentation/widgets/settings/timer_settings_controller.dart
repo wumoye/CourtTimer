@@ -17,6 +17,7 @@ class TimerSettingsController extends ChangeNotifier {
   StreamSubscription<PlayerState>? _previewStateSub;
   Timer? _previewFallbackTimer;
   bool _isPreviewing = false;
+  bool _previewAudioContextConfigured = false;
 
   Future<bool> playPreview(String? asset) async {
     if (asset == null || asset.isEmpty) {
@@ -31,6 +32,7 @@ class TimerSettingsController extends ChangeNotifier {
           ..setPlayerMode(PlayerMode.lowLatency);
 
     try {
+      await _configurePreviewAudioContext();
       await _previewPlayer!.stop();
       await _previewCompleteSub?.cancel();
       await _previewStateSub?.cancel();
@@ -87,5 +89,17 @@ class TimerSettingsController extends ChangeNotifier {
     _previewStateSub = null;
     _previewFallbackTimer?.cancel();
     _previewFallbackTimer = null;
+  }
+
+  /// A settings preview is not a timer prompt. It should layer over existing
+  /// media instead of asking Android to pause or duck another app.
+  Future<void> _configurePreviewAudioContext() async {
+    if (_previewAudioContextConfigured) {
+      return;
+    }
+    await _previewPlayer!.setAudioContext(
+      AudioContextConfig(focus: AudioContextConfigFocus.mixWithOthers).build(),
+    );
+    _previewAudioContextConfigured = true;
   }
 }
